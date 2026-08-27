@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KYC Admin Panel</title>
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <main class="admin-shell">
+    <header class="admin-header">
+      <img src="logo.png" alt="Company Logo" class="admin-logo" onerror="this.style.display='none'" />
+      <div>
+        <p class="eyebrow">Operations</p>
+        <h1>KYC Admin Panel</h1>
+      </div>
+      <a class="customer-link" href="/">Open Customer Form</a>
+    </header>
+
+    <section class="summary-grid" aria-label="KYC summary">
+      <article class="summary-card"><span>Total KYC</span><strong id="totalCount">-</strong></article>
+      <article class="summary-card"><span>Today's KYC</span><strong id="todayCount">-</strong></article>
+      <article class="summary-card"><span>This Week</span><strong id="weekCount">-</strong></article>
+      <article class="summary-card"><span>This Month</span><strong id="monthCount">-</strong></article>
+    </section>
+
+    <section class="records-panel">
+      <div class="toolbar">
+        <label class="search-wrap">
+          <span>Search submissions</span>
+          <input id="searchInput" type="search" placeholder="Name, PAN, KYC ID, Corporate ID or registration number" />
+        </label>
+        <label class="sort-wrap">
+          <span>Sort by</span>
+          <select id="sortSelect">
+            <option value="newest">Newest submission</option>
+            <option value="oldest">Oldest submission</option>
+            <option value="name">Entity name</option>
+            <option value="type">Entity type</option>
+          </select>
+        </label>
+      </div>
+      <p id="listStatus" class="list-status" role="status"></p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>KYC ID</th><th>Entity / Company</th><th>Type</th><th>PAN</th>
+              <th>Corporate ID / SAP ID</th><th>Product</th><th>Registration No.</th>
+              <th>Incorporation Date</th><th>Phone</th><th>Website</th><th>Submitted</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="recordsBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="pagination"></div>
+    </section>
+  </main>
+
+  <dialog id="detailDialog" class="detail-dialog">
+    <div class="dialog-header">
+      <div><p class="eyebrow">Submitted KYC</p><h2 id="detailTitle">KYC Details</h2></div>
+      <button class="icon-button" id="closeDialog" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div id="detailContent" class="detail-content"></div>
+  </dialog>
+  <script src="admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>KYC Form (Non-Individuals Only)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <div class="form-wrapper" id="printArea">
+    <header class="form-header">
+      <img src="logo.png" alt="Company Logo" class="logo" onerror="this.style.display='none'" />
+      <div class="company-title">
+        <h1 id="companyName">Escrow Ventures Private Limited</h1>
+        <h2>Know Your Customer (KYC) Form</h2>
+        <h3>(Non-Individuals Only)</h3>
+      </div>
+    </header>
+
+    <form id="kycForm">
+      <!-- Top Header Details - Above A. Identity Details -->
+      <div class="top-form-details">
+
+        <!-- Corporate ID / SAP ID -->
+        <div class="corporate-id-row">
+          <label class="corporate-id-label">
+            CORPORATE ID / SAP ID
+          </label>
+
+          <input type="text" name="corporateIdOrSapId" class="corporate-id-input" />
+
+          <!-- Product Type -->
+          <div class="product-options">
+
+            <label>
+              <input type="checkbox" name="productType" value="Gift" />
+              <span>Gift</span>
+            </label>
+
+            <label>
+              <input type="checkbox" name="productType" value="Petro" />
+              <span>Petro</span>
+            </label>
+
+            <label>
+              <input type="checkbox" name="productType" value="Meal" />
+              <span>Meal</span>
+            </label>
+
+            <label>
+              <input type="checkbox" name="productType" value="GPR" />
+              <span>GPR</span>
+            </label>
+
+            <label>
+              <input type="checkbox" name="productType" value="Other" />
+              <span>Other</span>
+            </label>
+
+          </div>
+
+          <!-- Other input line -->
+          <input type="text" name="productTypeOther" class="product-other-input" aria-label="Other product type" />
+
+        </div>
+
+
+        <!-- Instruction / Note -->
+        <div class="top-instruction-box">
+
+          Please fill in ENGLISH and in BLOCK LETTERS. All the information marked (*) in Section A, B, C are mandatory.
+          The information is sought under the Policy Guidelines on Issuance and Operation of Prepaid Payment Instruments
+          issued by the RBI, the Prevention of Money Laundering Act, 2002, the Rules notified thereunder and the Reserve
+          Bank Of India (RBI) guidelines on Know Your Customer/Anti Money Laundering/Combating of Financing of
+          Terrorism.
+        </div>
+
+      </div>
+      <!-- A. Identity Details -->
+      <section class="form-section original-identity-section">
+        <h4>A. Identity Details</h4>
+
+        <!-- 1. Name of the Corporate -->
+        <div class="original-field full">
+          <div class="field-title">
+            1. Name of the Corporate (Please write name as per certificate of Incorporation / Registration leaving one
+            box blank between two words)
+          </div>
+
+          <div class="letter-boxes">
+            <input type="text" name="entityName" maxlength="40" required />
+          </div>
+        </div>
+
+        <!-- 2. Date of Incorporation / Registration -->
+        <div class="original-row">
+          <div class="original-field registration-number-field">
+            <div class="field-title">
+              3. Registration Number issued by Registration Authority
+            </div>
+
+            <div class="letter-boxes">
+              <input type="text" name="registrationNo" maxlength="25" />
+            </div>
+          </div>
+
+          <div class="original-field incorporation-date-field">
+            <div class="field-title">
+              2. Date of Incorporation/Registration
+            </div>
+
+            <input type="date" name="incDate" class="simple-date-input" aria-label="Date of Incorporation" />
+          </div>
+        </div>
+
+        <!-- 4. Entity Type -->
+        <div class="original-field entity-type-field">
+          <div class="field-title entity-type-title">
+            4. Entity type
+          </div>
+
+          <div class="entity-type-options">
+
+            <label>
+              <input type="radio" name="entityType" value="Company" />
+              <span>Private Ltd. Co.</span>
+            </label>
+
+            <label>
+              <input type="radio" name="entityType" value="Company" />
+              <span>Public Ltd. Co.</span>
+            </label>
+
+            <label>
+              <input type="radio" name="entityType" value="HUF" />
+              <span>HUF</span>
+            </label>
+
+            <label>
+              <input type="radio" name="entityType" value="LLP" />
+              <span>LLP</span>
+            </label>
+
+            <label>
+              <input type="radio" name="entityType" value="Society" />
+              <span>Society</span>
+            </label>
+
+            <label class="please-specify">
+              <span>Please Specify</span>
+              <input type="text" name="entityTypeOther" />
+            </label>
+
+          </div>
+        </div>
+
+        <!-- 5. PAN + 6. Nature of Business -->
+        <div class="original-row bottom-row">
+
+          <div class="original-field pan-field">
+            <div class="field-title">
+              5. Entity Permanent Account Number
+            </div>
+
+            <div class="letter-boxes">
+              <input type="text" name="entityPan" maxlength="30" style="text-transform: uppercase;" required />
+            </div>
+          </div>
+
+          <div class="original-field business-field">
+            <div class="field-title">
+              6. Nature of Business
+            </div>
+
+            <div class="letter-boxes">
+              <input type="text" name="natureOfBusiness" maxlength="30" />
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- B. Address Details (Entity) -->
+      <section class="form-section original-address-section">
+        <h4>B. Address Details (Entity)</h4>
+
+        <!-- 1. Registered Address -->
+        <div class="address-field full">
+          <div class="field-title">
+            1. Registered Address
+          </div>
+
+          <div class="letter-boxes address-line">
+            <input type="text" name="registeredAddress" />
+          </div>
+        </div>
+
+        <div class="address-row">
+          <div class="address-field city-field">
+            <div class="field-label">City/Town/Village : </div>
+            <div class="letter-boxes">
+              <input type="text" name="registeredCity" />
+            </div>
+          </div>
+
+          <div class="address-field pincode-field">
+            <div class="field-label">Pincode : </div>
+            <div class="letter-boxes">
+              <input type="text" name="registeredPincode" maxlength="6" />
+            </div>
+          </div>
+        </div>
+
+        <div class="address-row">
+          <div class="address-field state-field">
+            <div class="field-label">State : </div>
+            <div class="letter-boxes">
+              <input type="text" name="registeredState" />
+            </div>
+          </div>
+
+          <div class="address-field country-field">
+            <div class="field-label">Country : </div>
+            <div class="letter-boxes">
+              <input type="text" name="registeredCountry" />
+            </div>
+          </div>
+        </div>
+
+        <div class="address-row">
+          <div class="address-field phone-field">
+            <div class="field-label">Ph. No. : </div>
+            <div class="letter-boxes">
+              <input type="text" name="phone" />
+            </div>
+          </div>
+
+          <div class="address-field website-field">
+            <div class="field-label">Website : </div>
+            <div class="letter-boxes">
+              <input type="text" name="website" />
+            </div>
+          </div>
+        </div>
+
+        <div class="address-field full">
+          <div class="field-label">Email ID : </div>
+          <div class="letter-boxes">
+            <input type="email" name="email" />
+          </div>
+        </div>
+
+
+        <!-- 2. Address for Correspondence -->
+        <div class="address-field full correspondence-title">
+          <div class="field-title">
+            2. Address for Correspondence (If different from Registered Address)
+          </div>
+        </div>
+
+        <div class="address-row">
+          <div class="address-field city-field">
+            <div class="field-label">City/Town/Village : </div>
+            <div class="letter-boxes">
+              <input type="text" name="correspondenceCity" />
+            </div>
+          </div>
+
+          <div class="address-field pincode-field">
+            <div class="field-label">Pincode : </div>
+            <div class="letter-boxes">
+              <input type="text" name="correspondencePincode" maxlength="6" />
+            </div>
+          </div>
+        </div>
+
+        <div class="address-row">
+          <div class="address-field state-field">
+            <div class="field-label">State : </div>
+            <div class="letter-boxes">
+              <input type="text" name="correspondenceState" />
+            </div>
+          </div>
+
+          <div class="address-field country-field">
+            <div class="field-label">Country : </div>
+            <div class="letter-boxes">
+              <input type="text" name="correspondenceCountry" />
+            </div>
+          </div>
+        </div>
+
+
+        <!-- 3. Contact Details -->
+        <div class="address-field full contact-title">
+          <div class="field-title">
+            3. Contact details of the person authorised to sign this from
+          </div>
+        </div>
+
+        <div class="address-row">
+          <div class="address-field contact-name-field">
+            <div class="field-label">Mr./Mrs./Ms. : </div>
+            <div class="letter-boxes">
+              <input type="text" name="authSignatoryName" required />
+            </div>
+          </div>
+
+          <div class="address-field dob-field">
+            <div class="field-label" style="margin-left: -40px;">DOB : </div>
+
+            <input type="date" name="dob" class="simple-date-input" aria-label="Date of Birth" />
+          </div>
+        </div>
+
+        <div class="address-row">
+          <div class="address-field tel-field">
+            <div class="field-label">Tel (Off) : </div>
+            <div class="letter-boxes">
+              <input type="text" name="authSignatoryTel" />
+            </div>
+          </div>
+
+          <div class="address-field fax-field">
+            <div class="field-label">FAX : </div>
+            <div class="letter-boxes">
+              <input type="text" name="authSignatoryFax" />
+            </div>
+          </div>
+        </div>
+
+        <div class="address-field full">
+          <div class="field-label">Email ID : </div>
+          <div class="letter-boxes">
+            <input type="email" name="authSignatoryEmail" />
+          </div>
+        </div>
+
+
+        <!-- 4. Authorized Signatory -->
+        <div class="address-field full authorized-title">
+          <div class="field-title">
+            4. Authorized signatory
+          </div>
+        </div>
+
+        <div class="address-row">
+          <div class="address-field pan-field-b">
+            <div class="field-label">PAN No. : </div>
+            <div class="letter-boxes">
+              <input type="text" name="authSignatoryPan" maxlength="10" style="text-transform: uppercase;" />
+            </div>
+          </div>
+
+          <div class="address-field ovd-field-b">
+            <div class="field-label">OVD No. : </div>
+            <div class="letter-boxes">
+              <input type="text" name="authSignatoryOvdNo" />
+            </div>
+          </div>
+        </div>
+
+      </section>
+      <!-- C. Other Details -->
+      <section class="form-section original-other-section">
+
+        <h4>C. Other Details</h4>
+
+        <!-- 1. PEP -->
+        <div class="other-box pep-box">
+
+          <label class="pep-main">
+            <input type="checkbox" name="isPep" id="isPep" />
+
+            <span>
+              1. PEP- Please tick if any of your authorised
+              signatories/promoters/kartas/trustees/whole time directors
+              are either politically exposed person (PEP) or related
+              to politically exposed person (RPEP)
+            </span>
+          </label>
+
+          <div class="pep-details">
+            <strong>Details of PEP/RPEP</strong>
+
+            <input type="text" name="pepDetails" id="pepDetails" />
+          </div>
+
+        </div>
+
+
+        <!-- 2. Gross Annual Income -->
+        <div class="other-box income-box">
+
+          <div class="other-title">
+            2. Gross Annual Income (Please Tick)
+          </div>
+
+          <div class="income-subtitle">
+            A. Income range per annum
+          </div>
+
+          <div class="income-options">
+
+            <label>
+              <input type="radio" name="incomeRange" value="Below 1 lac" />
+              <span>Below 1 lac</span>
+            </label>
+
+            <label>
+              <input type="radio" name="incomeRange" value="1-5 lac" />
+              <span>1-5 lac</span>
+            </label>
+
+            <label>
+              <input type="radio" name="incomeRange" value="5-10 lac" />
+              <span>5-10 lac</span>
+            </label>
+
+            <label>
+              <input type="radio" name="incomeRange" value="10-25 lac" />
+              <span>10-25 lac</span>
+            </label>
+
+            <label>
+              <input type="radio" name="incomeRange" value=">25 lacs - 1 cr" />
+              <span>&gt;25 lacs – 1 cr.</span>
+            </label>
+
+            <label>
+              <input type="radio" name="incomeRange" value="> 1 cr" />
+              <span>&gt; 1 cr.</span>
+            </label>
+
+          </div>
+
+
+          <div class="networth-row">
+
+            <span class="networth-label">
+              B. Networth in Rs.
+            </span>
+
+            <input type="text" name="netWorth" class="networth-input" />
+
+            <span class="as-on-date">
+              as on date
+            </span>
+
+            <input type="date" name="netWorthDate" class="simple-date-input" aria-label="Networth as on date" />
+
+          </div>
+
+        </div>
+
+
+        <!-- 3. Activities -->
+        <div class="other-box activity-box">
+
+          <div class="other-title">
+            3. Is the entity involved in any of the following activity
+          </div>
+
+          <div class="activity-row">
+
+            <span class="activity-name">
+              • &nbsp; Foreign Exchange / Money Changer
+            </span>
+
+            <label>
+              <input type="radio" name="isForexMoneyChanger" value="Yes" />
+              Yes
+            </label>
+
+            <label>
+              <input type="radio" name="isForexMoneyChanger" value="No" checked />
+              No
+            </label>
+
+          </div>
+
+
+          <div class="activity-row">
+
+            <span class="activity-name">
+              • &nbsp; Gambling/Gaming/Lottery Services
+              (Casino, Betting Syndicate)
+            </span>
+
+            <label>
+              <input type="radio" name="isGamblingGamingLottery" value="Yes" />
+              Yes
+            </label>
+
+            <label>
+              <input type="radio" name="isGamblingGamingLottery" value="No" checked />
+              No
+            </label>
+
+          </div>
+
+
+          <div class="activity-row">
+
+            <span class="activity-name">
+              • &nbsp; Money lending / Pawning
+            </span>
+
+            <label>
+              <input type="radio" name="isMoneyLendingPawning" value="Yes" />
+              Yes
+            </label>
+
+            <label>
+              <input type="radio" name="isMoneyLendingPawning" value="No" checked />
+              No
+            </label>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- D. KYC Details -->
+      <section class="form-section original-kyc-section">
+
+        <h4>D. KYC Details</h4>
+
+        <!-- Mandatory documents heading -->
+        <div class="kyc-document-heading">
+
+          <div class="kyc-heading-top">
+            Mandatory Document to be submitted by the Entity of all categories,
+            as applicable (Please tick against the documents attached)
+          </div>
+
+          <div class="mandatory-options">
+
+            <label>
+              <input type="checkbox" name="panCardMandatory" />
+              Copy of PAN Card (Mandatory for all categories of a entity)
+            </label>
+
+            <label>
+              <input type="checkbox" name="gstIfApplicable" />
+              GST (If Applicable)
+            </label>
+
+          </div>
+
+        </div>
+
+
+        <!-- KYC Documents Table -->
+        <table class="original-kyc-table">
+
+          <thead>
+            <tr>
+              <th class="sr-column">Sr. No.</th>
+
+              <th>
+                Companies registered under the Companies Act,<br>
+                1956 or any Statute
+              </th>
+
+              <th>
+                Limited liability Partnership (LLP)
+              </th>
+
+              <th>
+                Registered Trusts / Societies/HUF's
+              </th>
+            </tr>
+          </thead>
+
+
+          <tbody>
+
+            <!-- ROW 1 -->
+            <tr>
+              <td class="sr-column">1</td>
+
+              <td>
+                <label class="document-check">
+                  <input type="checkbox" name="docCompanyCertificate" />
+                  <span>Certificate of Incorporation</span>
+                </label>
+              </td>
+
+              <td>
+                <label class="document-check">
+                  <input type="checkbox" name="docLlpCertificate" />
+                  <span>Certificate of Incorporation</span>
+                </label>
+              </td>
+
+              <td>
+                <label class="document-check">
+                  <input type="checkbox" name="docTrustCertificate" />
+                  <span>Certificate of Incorporation</span>
+                </label>
+              </td>
+            </tr>
+
+
+            <!-- ROW 2 -->
+            <tr>
+              <td class="sr-column">2</td>
+
+              <td>
+                <label class="document-check">
+                  <input type="checkbox" name="docCompanyPhotoPan" />
+                  <span>
+                    Photo, OVD &amp; PAN
+                    (authorized Signatories)
+                  </span>
+                </label>
+              </td>
+
+              <td>
+                <label class="document-check">
+                  <input type="checkbox" name="docLlpPhotoPan" />
+                  <span>
+                    Photo, OVD &amp; PAN of all Partners
+                  </span>
+                </label>
+              </td>
+
+              <td>
+                <label class="document-check">
+                  <input type="checkbox" name="docTrustPhotoPan" />
+                  <span>
+                    Photo, OVD &amp; PAN of Authorised Signatories /
+                    Karta
+                  </span>
+                </label>
+              </td>
+            </tr>
+
+
+            <!-- ROW 3 -->
+            <tr>
+              <td class="sr-column">3</td>
+
+              <td>
+                <label class="document-check">
+                  <input type="checkbox" name="docCompanyDirectors" />
+                  <span>
+                    List of Directors with Director Identification
+                    Number (DIN)
+                  </span>
+                </label>
+              </td>
+
+              <td>
+                <label class="document-check">
+                  <input type="checkbox" name="docLlpPartners" />
+                  <span>
+                    List of Partners with DIN No. for LLP
+                  </span>
+                </label>
+              </td>
+
+              <td>
+                <label class="document-check">
+                  <input type="checkbox" name="docTrustees" />
+                  <span>
+                    List of Trustees /office Bearers /Karta along with
+                    parceners
+                  </span>
+                </label>
+              </td>
+            </tr>
+
+
+            <!-- ROW 4 -->
+            <tr>
+              <td class="sr-column">4</td>
+
+              <td>
+                <label class="document-check">
+                  <input type="checkbox" name="docCompanyBoardResolution" />
+                  <span>
+                    Board Resolution authorising the person to sign and
+                    execute agreement documents or Copy of the
+                    Power of Attorney delegating such authority along
+                    with signature proof (eg. PAN Card/Driving
+                    licence/Passport)
+                  </span>
+                </label>
+              </td>
+
+              <td>
+                <label class="document-check">
+                  <input type="checkbox" name="docLlpResolution" />
+                  <span>
+                    (a)Signature of the partner signing the agreement
+                    along with signature proof
+                    <br><br>
+                    (b) Resolution authorizing the designate partner as
+                    authorized signatory along with Signature proof
+                    (Eg.PAN Card/Driving Licence /Passport)
+                  </span>
+                </label>
+              </td>
+
+              <td>
+                <label class="document-check">
+                  <input type="checkbox" name="docTrustResolution" />
+                  <span>
+                    Resolution Passed by the Board of trustee/
+                    Managing Committee authorizing any person to
+                    execute documents and papers /Bank verification of
+                    Karta (for HUF) along with signature proof of
+                    authorized signatory (eg. PAN Card/Driving
+                    License/Passport)
+                  </span>
+                </label>
+              </td>
+            </tr>
+
+
+            <!-- ROW 5 -->
+            <tr>
+              <td class="sr-column">5</td>
+
+              <td>
+                <label class="document-check">
+                  <input type="checkbox" name="docCompanyMoa" />
+                  <span>(a) MOA</span>
+                </label>
+
+                <label class="document-check">
+                  <input type="checkbox" name="docCompanyAoa" />
+                  <span>(b) AOA</span>
+                </label>
+
+                <label class="document-check">
+                  <input type="checkbox" name="docCompanyCommencement" />
+                  <span>
+                    (C) Certificate of commencement of Business
+                  </span>
+                </label>
+              </td>
+
+              <td>
+                <label class="document-check">
+                  <input type="checkbox" name="docLlpPartnershipDeed" />
+                  <span>
+                    Deed of partnership along with copy of certificate
+                    of registration.
+                  </span>
+                </label>
+              </td>
+
+              <td>
+                <label class="document-check">
+                  <input type="checkbox" name="docTrustRegistration" />
+                  <span>
+                    (a) Certificate of Registration
+                  </span>
+                </label>
+
+                <label class="document-check">
+                  <input type="checkbox" name="docTrustDeed" />
+                  <span>(b) Trust Deed</span>
+                </label>
+              </td>
+            </tr>
+
+
+            <!-- ROW 6 -->
+            <tr>
+              <td class="sr-column">6</td>
+
+              <td class="proof-address-cell">
+
+                <div class="proof-title">
+                  Proof of Address (Any one):
+                </div>
+
+                <label class="document-check">
+                  <input type="checkbox" name="companyUtilityBills" />
+                  <span>
+                    (a) Utility Bills (not Older than 2 months)any
+                    registration certificate with Tax authorities or
+                    Central/state/local body
+                  </span>
+                </label>
+
+                <label class="document-check">
+                  <input type="checkbox" name="companyBankStatement" />
+                  <span>
+                    (b) Latest Bank Statement/Front page of Pass Book
+                    (with Latest Transaction)
+                  </span>
+                </label>
+
+                <label class="document-check">
+                  <input type="checkbox" name="companyRentAgreement" />
+                  <span>
+                    (C) Rent Agreement /Leave License
+                  </span>
+                </label>
+
+                <label class="document-check">
+                  <input type="checkbox" name="companyShopsLicense" />
+                  <span>
+                    Copy of the Shops &amp; Establishments License/
+                    Udyog Aadhaar
+                  </span>
+                </label>
+
+              </td>
+
+              <td class="proof-address-cell">
+
+                <div class="proof-title">
+                  Proof of Address (Any one):
+                </div>
+
+                <label class="document-check">
+                  <input type="checkbox" name="llpUtilityBills" />
+                  <span>
+                    (a) Utility Bills (not Older than 2 months)any
+                    registration certificate with Tax authorities or
+                    Central/state/local body
+                  </span>
+                </label>
+
+                <label class="document-check">
+                  <input type="checkbox" name="llpBankStatement" />
+                  <span>
+                    (b) Latest Bank Statement/Front page of Pass Book
+                    (with Latest Transaction)
+                  </span>
+                </label>
+
+                <label class="document-check">
+                  <input type="checkbox" name="llpRentAgreement" />
+                  <span>
+                    (C) Rent Agreement /Leave License
+                  </span>
+                </label>
+
+                <label class="document-check">
+                  <input type="checkbox" name="llpShopsLicense" />
+                  <span>
+                    Copy of the Shops &amp; Establishments License/
+                    udyog aadhaar
+                  </span>
+                </label>
+
+              </td>
+
+              <td class="proof-address-cell">
+
+                <div class="proof-title">
+                  Proof of Address (Any one):
+                </div>
+
+                <label class="document-check">
+                  <input type="checkbox" name="trustUtilityBills" />
+                  <span>
+                    (a) Utility Bills (not Older than 2 months)any
+                    registration certificate with Tax authorities or
+                    Central/state/local body
+                  </span>
+                </label>
+
+                <label class="document-check">
+                  <input type="checkbox" name="trustBankStatement" />
+                  <span>
+                    (b) Latest Bank Statement/Front page of Pass Book
+                    (with Latest Transaction)
+                  </span>
+                </label>
+
+                <label class="document-check">
+                  <input type="checkbox" name="trustRentAgreement" />
+                  <span>
+                    (C) Rent Agreement /Leave License
+                  </span>
+                </label>
+
+                <label class="document-check">
+                  <input type="checkbox" name="trustShopsLicense" />
+                  <span>
+                    Copy of the Shops &amp; Establishments License/
+                    udyog aadhaar
+                  </span>
+                </label>
+
+              </td>
+            </tr>
+
+
+            <!-- ROW 7 -->
+            <tr>
+              <td class="sr-column">7</td>
+
+              <td>
+                <label class="document-check">
+                  <input type="checkbox" name="companyBeneficialOwnership" />
+                  <span>
+                    Details of Beneficial Ownership
+                    (persons with more than 25% of shares or
+                    Capital or profits)
+                  </span>
+                </label>
+              </td>
+
+              <td>
+                <label class="document-check">
+                  <input type="checkbox" name="llpBeneficialOwnership" />
+                  <span>
+                    Details of Beneficial Ownership
+                    (persons with more than 15% of the capital
+                    or profits)
+                  </span>
+                </label>
+              </td>
+
+              <td>
+                <label class="document-check">
+                  <input type="checkbox" name="trustBeneficialOwnership" />
+
+                  <span>
+                    <strong>Trust :</strong>
+                    <br>
+                    Beneficial owner(s) shall include identification of
+                    the author of the trust, the trustee, the
+                    beneficiaries with 15% or more interest in the trust
+                    and any other natural person exercising ultimate
+                    effective control over the trust through a chain of
+                    control or ownership.
+                    <br><br>
+
+                    <strong>Society:</strong>
+                    <br>
+                    Ownership of/entitlement to more than 15% of the
+                    property or capital or profits.
+                  </span>
+
+                </label>
+              </td>
+            </tr>
+
+          </tbody>
+
+        </table>
+
+
+        <!-- Original note -->
+        <div class="kyc-original-note">
+          <strong>Note: All the documents provided by the entity should be self attested along with company
+            stamp.</strong>
+        </div>
+
+      </section>
+
+      <!-- Declaration -->
+      <section class="form-section original-declaration-section">
+
+        <div class="declaration-text">
+
+          <div>
+            Declaration: I/We undersigned hereby declare and confirm that, I/We have read and understood,
+            and agree to abide by the terms, conditions, rules, regulations, guidelines and other statutory
+            requirements applicable to collection and maintenance of KYC documents while purchasing the
+            Gift/Reloadable Prepaid Cards (RPC) for further issuance of the same to the beneficiary.
+            I/We hereby confirm that the particulars relating to the beneficiary are true, correct and complete
+            to the best of my/our knowledge and belief. I/We hereby agree that Ebix Payment Services Private
+            Limited, their authorized agents, employees, officers, directors and representatives are neither
+            liable nor responsible for any losses, cost, damages & consequences arising out of any actions
+            undertaken or activities performed by them basis the information provided by me/us and also due
+            to the delay in intimating any changes to Ebix Payment Services Private Limited in such information
+            from my/our end. I/We acknowledge that, I/We am/are bound to collect and maintain the details of
+            each beneficiary to whom I/We will issue Gift/Reloadable Prepaid Cards (RPC). I/We will be liable
+            to reimburse Ebix Payment Services Private Limited all losses, costs and penalties imposed on it
+            by any regulator due to the discrepancy in respect of the data and/or KYC documents including but
+            not limited to the reputational loss suffered by Ebix Payment Services Private Limited. We will
+            furnish such KYC documents/details/information to Ebix Payment Services Private Limited as and
+            when required by it, regulator as the case may be.
+          </div>
+
+          <br>
+
+          <div>
+            I/We hereby declare that the details furnished above are True &amp; correct to the best of
+            My/Our knowledge and belief and I / We, Undertake sake to inform EbixCash of any changes
+            thereon, in case any of the information submitted is found to be false / untrue/ misleading /
+            misrepresenting, I / We are aware that I / We may be liable for the same.
+          </div>
+
+        </div>
+
+
+        <!-- Corporate / Client -->
+        <div class="signature-box corporate-client-box">
+
+          <div class="signature-details">
+
+            <div class="signature-line">
+              <span>Name:</span>
+              <input type="text" name="clientName" />
+            </div>
+
+            <div class="signature-line">
+              <span>Designation:</span>
+              <input type="text" name="clientDesignation" />
+            </div>
+
+            <div class="signature-line">
+              <span>Date:</span>
+              <input type="date" name="clientDate" />
+            </div>
+
+            <div class="signature-line">
+              <span>Place:</span>
+              <input type="text" name="clientPlace" />
+            </div>
+
+          </div>
+
+          <div class="signature-title">
+            Corporate / Client
+          </div>
+
+          <div class="signature-seal">
+            Signature &amp; Seal of Authorised Person
+          </div>
+
+        </div>
+
+
+        <!-- Relationship Manager -->
+        <div class="signature-box rm-box">
+
+          <div class="signature-details">
+
+            <div class="signature-line">
+              <span>Name:</span>
+              <input type="text" name="verifiedByRmName" />
+            </div>
+
+            <div class="signature-line">
+              <span>Designation:</span>
+              <input type="text" name="rmDesignation" />
+            </div>
+
+            <div class="signature-line">
+              <span>Date:</span>
+              <input type="date" name="rmDate" />
+            </div>
+
+            <div class="signature-line">
+              <span>Place:</span>
+              <input type="text" name="rmPlace" />
+            </div>
+
+          </div>
+
+
+          <!-- Verification checkboxes -->
+          <div class="verification-options">
+
+            <label>
+              <input type="checkbox" name="originalVerified" />
+              <span>
+                (Original Verified) – True copies of Document received
+              </span>
+            </label>
+
+            <label>
+              <input type="checkbox" name="selfAttested" />
+              <span>
+                (Self-Attested) – Self Certified document copies received
+              </span>
+            </label>
+
+            <label>
+              <input type="checkbox" name="clientSignatureVerified" />
+              <span>
+                Client / customer / authorised signature signed in my personal.
+              </span>
+            </label>
+
+          </div>
+
+
+          <div class="rm-title">
+            EbixCash Relationship Manager
+          </div>
+
+
+          <div class="rm-verification">
+
+            <label>
+              <input type="checkbox" name="documentsSeenAndVerified" />
+              <span>Entity documents seen and verified.</span>
+            </label>
+
+            <label>
+              <input type="checkbox" name="signedInPresence" />
+              <span>Entity authorized person sign in my presence</span>
+            </label>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <div class="actions no-print">
+        <button type="submit" id="submitBtn" class="btn-primary">Submit</button>
+        <button type="button" id="downloadBtn" class="btn-secondary" disabled>Download KYC PDF</button>
+        <button type="button" id="printBtn" class="btn-secondary" disabled>Print KYC PDF</button>
+        <span id="statusMsg"></span>
+      </div>
+    </form>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+
+</html>

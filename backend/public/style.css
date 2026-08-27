@@ -1,0 +1,1755 @@
+* { box-sizing: border-box; }
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #eef1f4;
+  margin: 0;
+  padding: 20px;
+  color: #1a1a1a;
+}
+
+.form-wrapper {
+  max-width: 900px;
+  margin: 0 auto;
+  background: #fff;
+  border: 2px solid #1f3b57;
+  padding: 24px 30px 40px;
+}
+/* =========================================
+   ORIGINAL KYC - A. IDENTITY DETAILS
+   ========================================= */
+
+.original-identity-section {
+  background: #fff;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 12px;
+}
+
+/* Section heading */
+.original-identity-section h4 {
+  background: #d9d9d9;
+  color: #111;
+  margin: 0;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 0;
+  border: none;
+}
+
+/* Common field */
+.original-field {
+  border: 1px solid #d5d5d5;
+  background: #fff;
+  position: relative;
+}
+
+.original-field.full {
+  width: 100%;
+}
+
+/* Field title */
+.field-title {
+  min-height: 24px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #222;
+  border-bottom: 1px solid #d5d5d5;
+}
+
+/* Rows */
+.original-row {
+  display: flex;
+  width: 100%;
+}
+
+.registration-number-field {
+  width: 55%;
+}
+
+.incorporation-date-field {
+  width: 45%;
+}
+
+/* Character box area */
+.letter-boxes {
+  height: 27px;
+  display: flex;
+  align-items: stretch;
+  padding: 0;
+}
+
+.letter-boxes input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-right: 1px solid #d5d5d5;
+  border-radius: 0;
+  background: transparent;
+  padding: 2px 4px;
+  font-size: 12px;
+  outline: none;
+}
+
+.letter-boxes input:focus {
+  background: #fffde0;
+}
+
+/* Make PAN look like individual boxes */
+.pan-field .letter-boxes input,
+.registration-number-field .letter-boxes input,
+.business-field .letter-boxes input {
+  letter-spacing: 1px;
+}
+
+/* Date boxes */
+.date-boxes {
+  display: flex;
+  align-items: center;
+  height: 27px;
+}
+
+.date-boxes input {
+  display: block !important;
+  width: 22px !important;
+  height: 27px !important;
+  box-sizing: border-box;
+  border: 1px solid #d5d5d5 !important;
+  border-radius: 0 !important;
+  background: #fff !important;
+  color: #111 !important;
+  text-align: center;
+  font-size: 12px !important;
+  padding: 0 !important;
+  outline: none;
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
+.date-boxes input:focus {
+  background: #fffde0 !important;
+  color: #111 !important;
+}
+
+.date-gap {
+  width: 7px;
+}
+
+/* Entity type */
+.entity-type-field {
+  width: 100%;
+  min-height: 58px;
+  display: flex;
+}
+
+.entity-type-title {
+  width: 135px;
+  min-height: 58px;
+  border-bottom: none;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 10px;
+}
+
+.entity-type-options {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 150px 150px 150px 1fr;
+  grid-template-rows: 29px 29px;
+  align-items: center;
+  padding-left: 12px;
+}
+
+.entity-type-options label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: normal;
+  color: #222;
+}
+
+.entity-type-options input[type="radio"] {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+}
+
+.entity-type-options .please-specify {
+  grid-column: 3 / 5;
+  gap: 8px;
+}
+
+.entity-type-options .please-specify input {
+  flex: 1;
+  height: 20px;
+  border: none;
+  border-bottom: 1px solid #555;
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+  font-size: 11px;
+}
+
+/* Bottom row */
+.bottom-row {
+  display: flex;
+}
+
+.pan-field {
+  width: 50%;
+}
+
+.business-field {
+  width: 50%;
+}
+
+.pan-field .field-title,
+.business-field .field-title {
+  display: inline-flex;
+  width: 48%;
+  height: 27px;
+  align-items: center;
+  border-bottom: none;
+  border-right: 1px solid #d5d5d5;
+  padding: 0 10px;
+}
+
+.pan-field .letter-boxes,
+.business-field .letter-boxes {
+  display: inline-flex;
+  width: 51%;
+  height: 27px;
+  vertical-align: top;
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+
+  .original-row {
+    flex-direction: column;
+  }
+
+  .registration-number-field,
+  .incorporation-date-field,
+  .pan-field,
+  .business-field {
+    width: 100%;
+  }
+
+  .entity-type-options {
+    grid-template-columns: 1fr 1fr;
+  }
+
+}
+
+/* =========================================
+   B. ADDRESS DETAILS - ORIGINAL STYLE
+   ========================================= */
+
+.original-address-section {
+  background: #fff;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 12px;
+}
+
+/* Section heading */
+.original-address-section h4 {
+  background: #d9d9d9;
+  color: #111;
+  margin: 0;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 0;
+}
+
+/* Every field */
+.address-field {
+  border: 1px solid #d5d5d5;
+  background: #fff;
+  position: relative;
+  min-height: 26px;
+}
+
+.address-field.full {
+  width: 100%;
+}
+
+/* Main title rows */
+.address-field .field-title {
+  min-height: 25px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #222;
+  border-bottom: 1px solid #d5d5d5;
+}
+
+/* Label inside rows */
+.field-label {
+  position: absolute;
+  left: 10px;
+  top: 0;
+  height: 27px;
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  color: #222;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+/* Row */
+.address-row {
+  display: flex;
+  width: 100%;
+}
+
+/* Character-box input area */
+.address-field .letter-boxes {
+  height: 27px;
+  display: flex;
+  width: 100%;
+}
+
+.address-field .letter-boxes input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  border-right: 1px solid #d5d5d5;
+  background: transparent;
+  padding: 2px 5px;
+  font-size: 11px;
+  outline: none;
+}
+
+/* Keep text after label */
+.address-field .field-label + .letter-boxes input {
+  padding-left: 120px;
+}
+
+.address-field .letter-boxes input:focus {
+  background: #fffde0;
+}
+
+/* Registered address */
+.address-line input {
+  padding-left: 10px !important;
+}
+
+/* City */
+.city-field {
+  width: 75%;
+}
+
+.city-field .field-label + .letter-boxes input {
+  padding-left: 120px;
+}
+
+/* Pincode */
+.pincode-field {
+  width: 25%;
+}
+
+.pincode-field .field-label + .letter-boxes input {
+  padding-left: 75px;
+}
+
+/* State */
+.state-field {
+  width: 75%;
+}
+
+.state-field .field-label + .letter-boxes input {
+  padding-left: 55px;
+}
+
+/* Country */
+.country-field {
+  width: 25%;
+}
+
+.country-field .field-label + .letter-boxes input {
+  padding-left: 70px;
+}
+
+/* Phone */
+.phone-field {
+  width: 50%;
+}
+
+.phone-field .field-label + .letter-boxes input {
+  padding-left: 60px;
+}
+
+/* Website */
+.website-field {
+  width: 50%;
+}
+
+.website-field .field-label + .letter-boxes input {
+  padding-left: 70px;
+}
+
+/* Correspondence */
+.correspondence-title {
+  margin-top: 0;
+}
+
+/* Contact title */
+.contact-title {
+  margin-top: 0;
+}
+
+/* Contact person name */
+.contact-name-field {
+  width: 75%;
+}
+
+.contact-name-field .field-label + .letter-boxes input {
+  padding-left: 80px;
+}
+
+/* DOB */
+.dob-field {
+  width: 25%;
+}
+
+.dob-field .field-label {
+  left: 8px;
+}
+
+/* DOB boxes */
+.date-boxes {
+  display: flex;
+  align-items: center;
+  height: 27px;
+}
+
+.date-boxes input {
+  display: block !important;
+  width: 22px !important;
+  height: 27px !important;
+  box-sizing: border-box;
+  border: 1px solid #d5d5d5 !important;
+  border-radius: 0 !important;
+  background: #fff !important;
+  color: #111 !important;
+  text-align: center;
+  font-size: 12px !important;
+  padding: 0 !important;
+  outline: none;
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
+.date-boxes input:focus {
+  background: #fffde0 !important;
+  color: #111 !important;
+}
+
+.date-gap {
+  width: 7px;
+}
+
+/* Telephone */
+.tel-field {
+  width: 50%;
+}
+
+.tel-field .field-label + .letter-boxes input {
+  padding-left: 60px;
+}
+
+/* FAX */
+.fax-field {
+  width: 50%;
+}
+
+.fax-field .field-label + .letter-boxes input {
+  padding-left: 45px;
+}
+
+/* Authorized signatory heading */
+.authorized-title {
+  margin-top: 0;
+}
+
+.authorized-title .field-title {
+  color: #173f68;
+  font-weight: 600;
+}
+
+/* PAN */
+.pan-field-b {
+  width: 50%;
+}
+
+.pan-field-b .field-label + .letter-boxes input {
+  padding-left: 65px;
+}
+
+/* OVD */
+.ovd-field-b {
+  width: 50%;
+}
+
+.ovd-field-b .field-label + .letter-boxes input {
+  padding-left: 60px;
+}
+
+
+/* =========================================
+   MOBILE
+   ========================================= */
+
+@media (max-width: 700px) {
+
+  .address-row {
+    flex-direction: column;
+  }
+
+  .city-field,
+  .pincode-field,
+  .state-field,
+  .country-field,
+  .phone-field,
+  .website-field,
+  .contact-name-field,
+  .dob-field,
+  .tel-field,
+  .fax-field,
+  .pan-field-b,
+  .ovd-field-b {
+    width: 100%;
+  }
+
+}
+/* =========================================
+   C. OTHER DETAILS - ORIGINAL KYC STYLE
+   ========================================= */
+
+.original-other-section {
+  background: #fff;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 12px;
+}
+
+/* Section heading */
+.original-other-section h4 {
+  background: #d9d9d9;
+  color: #111;
+  margin: 0;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 0;
+}
+
+
+/* Common box */
+.other-box {
+  border: 1px solid #d5d5d5;
+  background: #fff;
+  margin: 5px 0;
+  font-size: 11px;
+}
+
+
+/* =========================================
+   1. PEP
+   ========================================= */
+
+.pep-box {
+  padding: 9px 12px 7px;
+}
+
+.pep-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.35;
+  font-weight: normal;
+  color: #222;
+}
+
+.pep-main input {
+  width: 13px;
+  height: 13px;
+  min-width: 13px;
+  margin: 1px 0 0;
+}
+
+.pep-details {
+  margin-top: 7px;
+  display: flex;
+  flex-direction: column;
+}
+
+.pep-details strong {
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.pep-details input {
+  width: 100%;
+  height: 22px;
+  border: none;
+  border-bottom: 1px solid #555;
+  border-radius: 0;
+  background: transparent;
+  padding: 2px 4px;
+  font-size: 11px;
+  outline: none;
+}
+
+.pep-details input:focus {
+  background: #fffde0;
+}
+
+
+/* =========================================
+   2. GROSS ANNUAL INCOME
+   ========================================= */
+
+.income-box {
+  padding: 7px 10px 8px;
+}
+
+.other-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: #222;
+  margin-bottom: 8px;
+}
+
+.income-subtitle {
+  font-size: 11px;
+  margin-bottom: 7px;
+  color: #222;
+}
+
+.income-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px 6px 14px;
+}
+
+.income-options label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: normal;
+  color: #222;
+  white-space: nowrap;
+}
+
+.income-options input {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+}
+
+
+/* Networth */
+.networth-row {
+  display: flex;
+  align-items: center;
+  min-height: 27px;
+  gap: 5px;
+}
+
+.networth-label {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.networth-input {
+  width: 185px;
+  height: 23px;
+  border: none;
+  border-bottom: 1px solid #555;
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+  font-size: 11px;
+  padding: 2px 4px;
+}
+
+.networth-input:focus {
+  background: #fffde0;
+}
+
+.as-on-date {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.networth-date {
+  display: flex;
+  height: 25px;
+  margin-left: 3px;
+}
+
+.networth-date input {
+  width: 18px;
+  height: 25px;
+  border: 1px solid #d5d5d5;
+  border-radius: 0;
+  text-align: center;
+  padding: 0;
+  font-size: 10px;
+  background: transparent;
+  outline: none;
+}
+
+.networth-date input:focus {
+  background: #fffde0;
+}
+
+.networth-date .date-gap {
+  width: 5px;
+}
+
+
+/* =========================================
+   3. ACTIVITY
+   ========================================= */
+
+.activity-box {
+  padding: 7px 10px 8px;
+}
+
+.activity-box .other-title {
+  margin-bottom: 7px;
+}
+
+.activity-row {
+  display: flex;
+  align-items: center;
+  min-height: 23px;
+  font-size: 11px;
+  color: #222;
+}
+
+.activity-name {
+  flex: 1;
+}
+
+.activity-row label {
+  width: 75px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: normal;
+}
+
+.activity-row input {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+}
+
+
+/* =========================================
+   REMOVE OLD C SECTION STYLES
+   ========================================= */
+
+.original-other-section h5 {
+  display: none;
+}
+
+
+/* =========================================
+   RESPONSIVE
+   ========================================= */
+
+@media (max-width: 700px) {
+
+  .income-options {
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    justify-content: flex-start;
+  }
+
+  .networth-row {
+    flex-wrap: wrap;
+  }
+
+  .activity-row {
+    flex-wrap: wrap;
+  }
+
+  .activity-name {
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+}
+/* =========================================
+   D. KYC DETAILS - ORIGINAL FORM DESIGN
+   ========================================= */
+
+.original-kyc-section {
+  background: #fff;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 12px;
+}
+
+.original-kyc-section h4 {
+  background: #d9d9d9;
+  color: #111;
+  margin: 0;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 0;
+}
+
+
+/* =========================================
+   Mandatory Document Heading
+   ========================================= */
+
+.kyc-document-heading {
+  border: 1px solid #d5d5d5;
+  margin: 5px 0 0;
+  padding: 7px 10px;
+  background: #fff;
+}
+
+.kyc-heading-top {
+  font-size: 10px;
+  color: #222;
+  margin-bottom: 5px;
+}
+
+.mandatory-options {
+  display: flex;
+  align-items: center;
+  gap: 35px;
+}
+
+.mandatory-options label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #222;
+}
+
+.mandatory-options input {
+  width: 12px;
+  height: 12px;
+  margin: 0;
+}
+
+
+/* =========================================
+   Main Table
+   ========================================= */
+
+.original-kyc-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 9px;
+  color: #222;
+}
+
+.original-kyc-table th,
+.original-kyc-table td {
+  border: 1px solid #d0d0d0;
+  vertical-align: top;
+}
+
+.original-kyc-table th {
+  background: #e9e9e9;
+  text-align: center;
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 8px 5px;
+  line-height: 1.25;
+}
+
+.original-kyc-table td {
+  padding: 7px 8px;
+  line-height: 1.3;
+}
+
+/* Column widths */
+.original-kyc-table .sr-column {
+  width: 5%;
+  text-align: center;
+}
+
+.original-kyc-table th:nth-child(2),
+.original-kyc-table td:nth-child(2) {
+  width: 29%;
+}
+
+.original-kyc-table th:nth-child(3),
+.original-kyc-table td:nth-child(3) {
+  width: 33%;
+}
+
+.original-kyc-table th:nth-child(4),
+.original-kyc-table td:nth-child(4) {
+  width: 33%;
+}
+
+
+/* =========================================
+   Document checkbox
+   ========================================= */
+
+.document-check {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  font-size: 8.5px !important;
+  font-weight: normal !important;
+  color: #222 !important;
+  line-height: 1.35;
+}
+
+.document-check input[type="checkbox"] {
+  width: 12px !important;
+  height: 12px !important;
+  min-width: 12px;
+  margin: 1px 0 0 !important;
+  padding: 0 !important;
+}
+
+.document-check span {
+  flex: 1;
+}
+
+
+/* Multiple documents in same cell */
+.original-kyc-table td > .document-check + .document-check {
+  margin-top: 10px;
+}
+
+
+/* =========================================
+   Proof of Address
+   ========================================= */
+
+.proof-address-cell {
+  padding: 0 !important;
+}
+
+.proof-title {
+  padding: 9px 8px 8px;
+  min-height: 65px;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.proof-address-cell .document-check {
+  border-top: 1px solid #e0e0e0;
+  padding: 9px 8px !important;
+  min-height: 48px;
+}
+
+
+/* =========================================
+   Row heights similar to original
+   ========================================= */
+
+.original-kyc-table tbody tr:nth-child(1) td {
+  min-height: 45px;
+}
+
+.original-kyc-table tbody tr:nth-child(2) td {
+  min-height: 48px;
+}
+
+.original-kyc-table tbody tr:nth-child(3) td {
+  min-height: 55px;
+}
+
+.original-kyc-table tbody tr:nth-child(4) td {
+  min-height: 95px;
+}
+
+.original-kyc-table tbody tr:nth-child(5) td {
+  min-height: 95px;
+}
+
+.original-kyc-table tbody tr:nth-child(6) td {
+  min-height: 210px;
+}
+
+.original-kyc-table tbody tr:nth-child(7) td {
+  min-height: 125px;
+}
+
+
+/* =========================================
+   Bottom Note
+   ========================================= */
+
+.kyc-original-note {
+  padding: 7px 10px;
+  font-size: 9px;
+  font-style: italic;
+  color: #222;
+}
+
+
+/* =========================================
+   Print
+   ========================================= */
+
+@media print {
+
+  .original-kyc-section {
+    break-inside: avoid;
+  }
+
+  .original-kyc-table {
+    page-break-inside: auto;
+  }
+
+  .original-kyc-table tr {
+    page-break-inside: avoid;
+  }
+
+  .kyc-document-heading {
+    page-break-inside: avoid;
+  }
+
+}
+
+
+.form-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 3px solid #1f3b57;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+.form-header .logo {
+  height: 55px;
+  max-width: 140px;
+  object-fit: contain;
+}
+.company-title h1 { font-size: 20px; margin: 0 0 4px; color: #1f3b57; }
+.company-title h2 { font-size: 15px; margin: 0; font-weight: 600; }
+.company-title h3 { font-size: 12px; margin: 2px 0 0; font-weight: normal; color: #555; }
+
+.form-section {
+  border: 1px solid #c9d3dc;
+  border-radius: 4px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.form-section h4 {
+  background: #1f3b57;
+  color: #fff;
+  margin: -14px -16px 14px;
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: 4px 4px 0 0;
+}
+.form-section h5 {
+  margin: 14px 0 8px;
+  font-size: 13px;
+  color: #1f3b57;
+  border-bottom: 1px solid #dde3e8;
+  padding-bottom: 4px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 20px;
+}
+.grid-2 label.full { grid-column: 1 / -1; }
+
+label {
+  display: flex;
+  flex-direction: column;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #33475b;
+  gap: 4px;
+}
+input[type="text"],
+input[type="date"],
+select,
+textarea {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: normal;
+  color: #111;
+  padding: 7px 8px;
+  border: 1px solid #b7c0c9;
+  border-radius: 3px;
+  background: #fbfcfd;
+}
+textarea { resize: vertical; }
+
+.checkbox-line {
+  flex-direction: row;
+  align-items: center;
+  font-weight: normal;
+  font-size: 13px;
+  gap: 8px;
+  margin: 6px 0;
+}
+.checkbox-line input { width: 16px; height: 16px; }
+
+.hidden { display: none !important; }
+.hint { font-size: 11.5px; color: #667; margin: 0 0 6px; }
+.hint.verification-note { margin-top: 8px; color: #556; }
+
+.yesno-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 13px;
+  padding: 6px 0;
+  border-bottom: 1px dashed #e2e7eb;
+}
+.yesno-row:last-child { border-bottom: none; }
+.yesno-label { flex: 1; font-weight: 600; color: #33475b; }
+.yesno-row label {
+  flex-direction: row;
+  align-items: center;
+  font-weight: normal;
+  gap: 5px;
+  white-space: nowrap;
+}
+.yesno-row input[type="radio"] { width: 15px; height: 15px; }
+
+.checklist label {
+  flex-direction: row;
+  align-items: center;
+  font-weight: normal;
+  font-size: 13px;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  font-weight: normal;
+  padding: 4px 0;
+}
+.checkbox-group .checkbox-line { margin: 2px 0; }
+
+.checkbox-line.small {
+  font-size: 11.5px;
+  margin: 2px 0;
+  gap: 5px;
+}
+.checkbox-line.small input { width: 13px; height: 13px; }
+
+.doc-verify-methods {
+  display: flex;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.doc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px dashed #e2e7eb;
+}
+.doc-row:last-child { border-bottom: none; }
+.doc-check {
+  flex-direction: row;
+  align-items: center;
+  font-weight: normal;
+  font-size: 13px;
+  gap: 8px;
+  flex: 1;
+}
+.doc-verify-method {
+  font-size: 12px;
+  padding: 4px 6px;
+  min-width: 150px;
+}
+
+.bo-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 6px;
+  font-size: 12.5px;
+}
+.bo-table th, .bo-table td {
+  border: 1px solid #c9d3dc;
+  padding: 5px 6px;
+}
+.bo-table th { background: #eef2f6; }
+.bo-table input {
+  width: 100%;
+  border: none;
+  padding: 3px;
+  font-size: 12.5px;
+}
+.bo-table .remove-row {
+  background: #c0392b;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 3px 7px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+/* =====================================================
+   DECLARATION / CLIENT / RELATIONSHIP MANAGER
+   FINAL FIX
+   ===================================================== */
+
+.original-declaration-section {
+  width: 100%;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: #fff;
+}
+
+.original-declaration-section > h4 {
+  display: none !important;
+}
+
+/* ================= DECLARATION TEXT ================= */
+
+.original-declaration-section .declaration-text {
+  margin: 0 !important;
+  padding: 8px 30px !important;
+  font-family: Arial, sans-serif !important;
+  font-size: 9px !important;
+  line-height: 1.45 !important;
+  font-weight: normal !important;
+  color: #111 !important;
+  text-align: left !important;
+}
+
+/* ================= COMMON BOX ================= */
+
+.original-declaration-section .signature-box {
+  position: relative !important;
+  margin: 0 35px 8px !important;
+  width: calc(100% - 70px) !important;
+  border: 1px solid #d0d0d0 !important;
+  border-radius: 15px !important;
+  background: #fff !important;
+  box-sizing: border-box !important;
+}
+
+/* ================= CORPORATE / CLIENT ================= */
+
+.original-declaration-section .corporate-client-box {
+  height: 85px !important;
+  min-height: 85px !important;
+}
+
+/* LEFT NAME / DESIGNATION / DATE / PLACE */
+
+.original-declaration-section .signature-box .signature-details {
+  position: absolute !important;
+  left: 16px !important;
+  top: 7px !important;
+  width: 350px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Individual line */
+
+.original-declaration-section .signature-line {
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  height: 19px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-family: Arial, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: normal !important;
+  color: #111 !important;
+}
+
+/* Label */
+
+.original-declaration-section .signature-line span {
+  display: block !important;
+  width: 70px !important;
+  min-width: 70px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Input */
+
+.original-declaration-section .signature-line input {
+  display: block !important;
+  width: 250px !important;
+  height: 20px !important;
+  margin: 0 !important;
+  padding: 2px 5px !important;
+  border: 1px solid #bfc8d1 !important;
+  border-radius: 3px !important;
+  background: #f8fafc !important;
+  box-sizing: border-box !important;
+  font-size: 11px !important;
+}
+
+/* CLIENT TITLE */
+
+.original-declaration-section .signature-title {
+  position: absolute !important;
+  left: 60% !important;
+  bottom: 5px !important;
+  transform: translateX(-50%) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-family: Arial, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #111 !important;
+  white-space: nowrap !important;
+  z-index: 10 !important;
+}
+
+/* SIGNATURE & SEAL */
+
+.original-declaration-section .signature-seal {
+  position: absolute !important;
+  right: 38px !important;
+  bottom: 8px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-family: Arial, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: normal !important;
+  color: #c8c8c8 !important;
+  white-space: nowrap !important;
+}
+
+/* =====================================================
+   RELATIONSHIP MANAGER
+   ===================================================== */
+
+.original-declaration-section .rm-box {
+  position: relative !important;
+  height: 205px !important;
+  min-height: 205px !important;
+  margin-bottom: 0 !important;
+}
+
+/* RM DETAILS */
+
+.original-declaration-section .rm-box .signature-details {
+  left: 16px !important;
+  top: 8px !important;
+  width: 350px !important;
+}
+
+/* =====================================================
+   LEFT CHECKBOX AREA
+   ===================================================== */
+
+.original-declaration-section .verification-options {
+  position: absolute !important;
+  left: 16px !important;
+  bottom: 8px !important;
+  width: 400px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 5 !important;
+}
+
+/* IMPORTANT: Force checkbox + text into ONE horizontal row */
+
+.original-declaration-section .verification-options label {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  height: 29px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 18px !important;
+  font-family: Arial, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: normal !important;
+  color: #111 !important;
+  white-space: nowrap !important;
+}
+
+/* Checkbox */
+
+.original-declaration-section
+.verification-options
+input[type="checkbox"] {
+  position: static !important;
+  display: block !important;
+  width: 19px !important;
+  height: 19px !important;
+  min-width: 19px !important;
+  max-width: 19px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 0 0 19px !important;
+}
+
+/* Text */
+
+.original-declaration-section
+.verification-options
+label span {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: none !important;
+}
+
+/* =====================================================
+   RM TITLE
+   ===================================================== */
+
+.original-declaration-section .rm-title {
+  position: absolute !important;
+  left: 60% !important;
+  bottom: 3px !important;
+  transform: translateX(-50%) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-family: Arial, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #111 !important;
+  white-space: nowrap !important;
+  z-index: 10 !important;
+}
+
+/* =====================================================
+   RIGHT SIDE CHECKBOXES
+   ===================================================== */
+
+.original-declaration-section .rm-verification {
+  position: absolute !important;
+  right: 15px !important;
+  bottom: 8px !important;
+  width: 300px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 5 !important;
+}
+
+/* Right checkbox row */
+
+.original-declaration-section .rm-verification label {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  width: 100% !important;
+  height: 29px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 8px !important;
+  font-family: Arial, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: normal !important;
+  color: #c8c8c8 !important;
+  white-space: nowrap !important;
+}
+
+/* Right checkbox */
+
+.original-declaration-section
+.rm-verification
+input[type="checkbox"] {
+  position: static !important;
+  display: block !important;
+  width: 13px !important;
+  height: 13px !important;
+  min-width: 13px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 0 0 13px !important;
+}
+
+/* Right text */
+
+.original-declaration-section
+.rm-verification
+label span {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: none !important;
+}
+
+/* =====================================================
+   MOBILE
+   ===================================================== */
+
+@media (max-width: 800px) {
+  .original-declaration-section .signature-box {
+    margin-left: 10px !important;
+    margin-right: 10px !important;
+    width: calc(100% - 20px) !important;
+  }
+
+  .original-declaration-section .signature-details {
+    width: 300px !important;
+  }
+
+  .original-declaration-section .signature-line input {
+    width: 210px !important;
+  }
+
+  .original-declaration-section .signature-title,
+  .original-declaration-section .rm-title {
+    display: none !important;
+  }
+
+  .original-declaration-section .rm-verification {
+    display: none !important;
+  }
+}
+
+/* =========================================
+   SIMPLE NATIVE DATE INPUTS
+   ========================================= */
+
+.simple-date-input {
+  display: block !important;
+  width: 100% !important;
+  height: 27px !important;
+  box-sizing: border-box;
+  border: 1px solid #d5d5d5 !important;
+  border-radius: 0 !important;
+  background: #fff !important;
+  color: #111 !important;
+  cursor: pointer;
+  font-family: Arial, sans-serif;
+  font-size: 12px !important;
+  padding: 2px 6px !important;
+  outline: none;
+}
+
+.simple-date-input:focus,
+input[type="date"]:focus {
+  background: #fffde0 !important;
+  color: #111 !important;
+}
+
+input[type="date"] {
+  cursor: pointer;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.btn-primary, .btn-secondary {
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.btn-primary { background: #1f3b57; color: #fff; }
+.btn-primary:hover { background: #16293d; }
+.btn-secondary { background: #e6ebf0; color: #1f3b57; }
+.btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+#statusMsg { font-size: 13px; }
+#statusMsg.error { color: #c0392b; }
+#statusMsg.success { color: #1a7a3c; }
+
+@media print {
+  body { background: #fff; padding: 0; }
+  .no-print { display: none !important; }
+  .form-wrapper { border: none; max-width: 100%; }
+}
+
+@media (max-width: 640px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .form-header { flex-direction: column; text-align: center; }
+}
+
+/* =========================================
+   TOP DETAILS ABOVE A. IDENTITY
+   ========================================= */
+
+.top-form-details {
+  width: 100%;
+  box-sizing: border-box;
+  background: #fff;
+  margin: 0;
+  padding: 0 16px 8px;
+}
+
+/* Corporate ID row */
+.corporate-id-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 48px;
+  box-sizing: border-box;
+}
+
+/* Corporate ID label */
+.corporate-id-label {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: #111;
+  white-space: nowrap;
+  margin-right: 10px;
+}
+
+/* Corporate ID input */
+.corporate-id-input {
+  width: 235px;
+  height: 25px;
+  border: none;
+  border-bottom: 1.5px solid #333;
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+  font-size: 10px;
+  padding: 0 4px;
+  box-sizing: border-box;
+}
+
+/* Product checkboxes */
+.product-options {
+  display: flex;
+  align-items: center;
+  margin-left: 55px;
+  gap: 20px;
+  flex: 1;
+}
+
+.product-options label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  font-weight: normal;
+  color: #111;
+  white-space: nowrap;
+}
+
+.product-options input[type="checkbox"] {
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* Other text line */
+.product-other-input {
+  width: 155px;
+  height: 25px;
+  border: none;
+  border-bottom: 1.5px solid #333;
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  padding: 0 4px;
+  box-sizing: border-box;
+}
+
+/* =========================================
+   INSTRUCTION BOX
+   ========================================= */
+
+.top-instruction-box {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d5d5d5;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  line-height: 1.35;
+  color: #222;
+  background: #fff;
+}
+
+/* =========================================
+   MOBILE
+   ========================================= */
+
+@media (max-width: 900px) {
+  .corporate-id-row {
+    height: auto;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 8px 0;
+  }
+
+  .corporate-id-label {
+    font-size: 16px;
+  }
+
+  .product-options {
+    margin-left: 0;
+    gap: 15px;
+    flex-wrap: wrap;
+  }
+
+  .product-options label {
+    font-size: 14px;
+  }
+
+  .product-other-input {
+    width: 120px;
+  }
+
+  .top-instruction-box {
+    font-size: 11px;
+  }
+}
