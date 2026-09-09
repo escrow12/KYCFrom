@@ -81,6 +81,7 @@ function generateKycPdf(formDoc) {
         console.error("KYC PDF logo load error:", e.message);
       }
     }
+    
     const headerOffset = logoLoaded ? 45 : 0;
     doc.fontSize(12).font("Helvetica").text("Know Your Customer (KYC) Form", 0, headerTop + headerOffset, { align: "center" });
     doc.fontSize(10).text("(Non-Individuals Only)", { align: "center" });
