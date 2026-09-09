@@ -4,6 +4,7 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const kycRoutes = require("./routes/kycRoutes");
+const clientVerificationRoutes = require("./routes/clientverificationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 
 const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
@@ -22,6 +23,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // API routes
 app.use("/api/kyc", kycRoutes);
+app.use("/api/client-verification", clientVerificationRoutes);
 app.use("/api/admin/kyc", adminRoutes);
 
 // Fallback to index.html for the root
@@ -29,13 +31,31 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
+
+function startServer(port) {
+  const server = app.listen(port, () => {
+    console.log(`Server running on http://localhost:${port}`);
+  });
+
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      const nextPort = port + 1;
+      console.warn(`Port ${port} is busy. Retrying on ${nextPort}...`);
+      startServer(nextPort);
+      return;
+    }
+
+    console.error("Server startup error:", err.message);
+    process.exit(1);
+  });
+}
 
 mongoose
   .connect(mongoUri)
   .then(() => {
     console.log("Connected to MongoDB Atlas");
-    app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+    startServer(PORT);
   })
   .catch((err) => {
     console.error("MongoDB connection error:", err.message);

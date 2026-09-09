@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Verification & Due Diligence Form</title>
+  <link rel="stylesheet" href="cv-style.css">
+</head>
+
+<body>
+  <main class="paper" id="printArea">
+
+    <!-- PAGE 1 -->
+    <div class="print-page page-1">
+      <header class="title">
+        <h1>CLIENT VERIFICATION &amp; DUE DILIGENCE FORM</h1>
+        <p>For Physical Site Verification, Corporate Due Diligence &amp; Client Onboarding</p>
+      </header>
+
+      <form id="verificationForm">
+
+        <section>
+          <h2>1. VERIFICATION ASSIGNMENT</h2>
+          <div class="form-table">
+
+            <div class="form-row">
+              <div class="field-label">Verification Reference No.</div>
+              <div class="field-value">
+                <input name="assignment.referenceNo">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">Date of Assignment</div>
+              <div class="field-value">
+                <input type="date" name="assignment.dateOfAssignment">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">Date / Time of Visit</div>
+              <div class="field-value">
+                <input type="datetime-local" name="assignment.visitDateTime">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">Verification Agency / Executive</div>
+              <div class="field-value">
+                <input name="assignment.agencyExecutive">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">Purpose of Verification</div>
+              <div class="field-value">
+                <div class="options">
+                  <label><input type="checkbox" name="assignment.purpose" value="Client Onboarding"> Client Onboarding</label>
+                  <label><input type="checkbox" name="assignment.purpose" value="KYC / Due Diligence"> KYC / Due Diligence</label>
+                  <label><input type="checkbox" name="assignment.purpose" value="Credit / Risk Assessment"> Credit / Risk Assessment</label>
+                  <label><input type="checkbox" name="assignment.purpose" value="Other"> Other</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">Requested By</div>
+              <div class="field-value">
+                <input name="assignment.requestedBy">
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <section>
+          <h2>2. CLIENT / COMPANY DETAILS</h2>
+          <div class="form-table">
+
+            <div class="form-row">
+              <div class="field-label">Legal / Registered Name</div>
+              <div class="field-value">
+                <input name="client.legalName" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">Trade / Brand Name</div>
+              <div class="field-value">
+                <input name="client.tradeName">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">Constitution</div>
+              <div class="field-value">
+                <div class="options">
+                  <label><input type="radio" name="client.constitution" value="Pvt. Ltd."> Pvt. Ltd.</label>
+                  <label><input type="radio" name="client.constitution" value="Public Ltd."> Public Ltd.</label>
+                  <label><input type="radio" name="client.constitution" value="LLP"> LLP</label>
+                  <label><input type="radio" name="client.constitution" value="Partnership"> Partnership</label>
+                  <label><input type="radio" name="client.constitution" value="Proprietorship"> Proprietorship</label>
+                  <label><input type="radio" name="client.constitution" value="Other"> Other</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">CIN / LLPIN / Registration No.</div>
+              <div class="field-value"><input name="client.registrationNo"></div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">PAN</div>
+              <div class="field-value"><input name="client.pan"></div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">GSTIN</div>
+              <div class="field-value"><input name="client.gstin"></div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">Date of Incorporation / Establishment</div>
+              <div class="field-value"><input type="date" name="client.incorporationDate"></div>
+            </div>
+
+            <div class="form-row multi-line">
+              <div class="field-label">Registered Office Address</div>
+              <div class="field-value"><textarea name="client.registeredAddress"></textarea></div>
+            </div>
+
+            <div class="form-row multi-line">
+              <div class="field-label">Operational / Site Address</div>
+              <div class="field-value"><textarea name="client.siteAddress"></textarea></div>
+            </div>
+
+            <div class="form-row multi-line">
+              <div class="field-label">Nature / Line of Business</div>
+              <div class="field-value"><textarea name="client.businessNature"></textarea></div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">Website / Business Email</div>
+              <div class="field-value"><input name="client.websiteEmail"></div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">Approx. Years in Operation</div>
+              <div class="field-value"><input name="client.yearsInOperation"></div>
+            </div>
+
+          </div>
+        </section>
+
+        <section>
+          <h2>3. PHYSICAL SITE VERIFICATION</h2>
+          <div class="form-table">
+
+            <div class="form-row">
+              <div class="field-label">Premises Type</div>
+              <div class="field-value">
+                <div class="options">
+                  <label><input type="radio" name="site.premisesType" value="Owned"> Owned</label>
+                  <label><input type="radio" name="site.premisesType" value="Leased"> Leased</label>
+                  <label><input type="radio" name="site.premisesType" value="Shared / Co-working"> Shared / Co-working</label>
+                  <label><input type="radio" name="site.premisesType" value="Residential"> Residential</label>
+                  <label><input type="radio" name="site.premisesType" value="Other"> Other</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row remarks-row">
+              <div class="field-label">Signboard / Branding Visible</div>
+              <div class="field-value">
+                <div class="options">
+                  <label><input type="radio" name="site.signboardVisible" value="Yes"> Yes</label>
+                  <label><input type="radio" name="site.signboardVisible" value="No"> No</label>
+                </div>
+                <div class="inline-remark">
+                  <span>Remarks:</span>
+                  <input name="site.signboardRemarks">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row remarks-row">
+              <div class="field-label">Office Operational at Visit</div>
+              <div class="field-value">
+                <div class="options">
+                  <label><input type="radio" name="site.officeOperational" value="Yes"> Yes</label>
+                  <label><input type="radio" name="site.officeOperational" value="No"> No</label>
+                  <label><input type="radio" name="site.officeOperational" value="Partially"> Partially</label>
+                </div>
+                <div class="inline-remark">
+                  <span>Remarks:</span>
+                  <input name="site.operationalRemarks">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">Business Activity Observed</div>
+              <div class="field-value">
+                <div class="options">
+                  <label><input type="radio" name="site.businessActivityObserved" value="Yes"> Yes</label>
+                  <label><input type="radio" name="site.businessActivityObserved" value="No"> No</label>
+                  <label><input type="radio" name="site.businessActivityObserved" value="Unable to Verify"> Unable to Verify</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">Approx. Office Area</div>
+              <div class="field-value">
+                <div class="unit-input">
+                  <input name="site.officeArea">
+                  <span>sq. ft. (approx.)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">Employees / Staff Observed</div>
+              <div class="field-value">
+                <div class="unit-input">
+                  <input name="site.staffObserved">
+                  <span>(approx.)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">Neighbourhood / Accessibility</div>
+              <div class="field-value"><input name="site.accessibility"></div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">Premises Ownership / Occupancy Evidence</div>
+              <div class="field-value">
+                <div class="options">
+                  <label><input type="radio" name="site.ownershipEvidence" value="Seen"> Seen</label>
+                  <label><input type="radio" name="site.ownershipEvidence" value="Not Seen"> Not Seen</label>
+                  <label><input type="radio" name="site.ownershipEvidence" value="Not Applicable"> Not Applicable</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="field-label">Address Matched With Records</div>
+              <div class="field-value">
+                <div class="options">
+                  <label><input type="radio" name="site.addressMatched" value="Yes"> Yes</label>
+                  <label><input type="radio" name="site.addressMatched" value="No"> No</label>
+                  <label><input type="radio" name="site.addressMatched" value="Partially"> Partially</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row multi-line">
+              <div class="field-label">Overall Site Observation</div>
+              <div class="field-value"><textarea name="site.observation"></textarea></div>
+            </div>
+
+          </div>
+        </section>
+      </form>
+    </div>
+
+    <!-- PAGE 2 -->
+    <div class="print-page page-2">
+      <section>
+        <h2>4. GEO-TAGGED LOCATION &amp; PHOTOGRAPHIC EVIDENCE</h2>
+        <div class="form-table">
+
+          <div class="form-row">
+            <div class="field-label">GPS Latitude</div>
+            <div class="field-value"><input name="evidence.latitude"></div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">GPS Longitude</div>
+            <div class="field-value"><input name="evidence.longitude"></div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">Geo-tag / Map Location</div>
+            <div class="field-value"><input name="evidence.mapLocation"></div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">Date &amp; Time Captured</div>
+            <div class="field-value"><input type="datetime-local" name="evidence.capturedAt"></div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">Office Exterior Photograph</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="radio" name="evidence.exteriorPhoto" value="Attached"> Attached</label>
+                <label><input type="radio" name="evidence.exteriorPhoto" value="Not Available"> Not Available</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">Office Interior Photograph</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="radio" name="evidence.interiorPhoto" value="Attached"> Attached</label>
+                <label><input type="radio" name="evidence.interiorPhoto" value="Not Available"> Not Available</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">Company Signboard Photograph</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="radio" name="evidence.signboardPhoto" value="Attached"> Attached</label>
+                <label><input type="radio" name="evidence.signboardPhoto" value="Not Available"> Not Available</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">Building / Address Landmark</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="radio" name="evidence.landmarkPhoto" value="Attached"> Attached</label>
+                <label><input type="radio" name="evidence.landmarkPhoto" value="Not Available"> Not Available</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">Director / Authorized Person Photograph</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="radio" name="evidence.personPhoto" value="Attached, where legally permissible"> Attached, where legally permissible</label>
+                <label><input type="radio" name="evidence.personPhoto" value="Not Available"> Not Available</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">Photo File / Evidence Reference Nos.</div>
+            <div class="field-value"><input name="evidence.fileReferences"></div>
+          </div>
+
+        </div>
+      </section>
+
+      <section>
+        <h2>5. PERSON CONTACTED DURING VERIFICATION</h2>
+        <div class="form-table">
+
+          <div class="form-row"><div class="field-label">Name</div><div class="field-value"><input name="contact.name"></div></div>
+          <div class="form-row"><div class="field-label">Designation</div><div class="field-value"><input name="contact.designation"></div></div>
+          <div class="form-row"><div class="field-label">Department</div><div class="field-value"><input name="contact.department"></div></div>
+          <div class="form-row"><div class="field-label">Mobile No.</div><div class="field-value"><input name="contact.mobile"></div></div>
+          <div class="form-row"><div class="field-label">Email ID</div><div class="field-value"><input type="email" name="contact.email"></div></div>
+
+          <div class="form-row">
+            <div class="field-label">Relationship With Client</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="radio" name="contact.relationship" value="Director"> Director</label>
+                <label><input type="radio" name="contact.relationship" value="Partner"> Partner</label>
+                <label><input type="radio" name="contact.relationship" value="Employee"> Employee</label>
+                <label><input type="radio" name="contact.relationship" value="Authorized Representative"> Authorized Representative</label>
+                <label><input type="radio" name="contact.relationship" value="Other"> Other</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">ID / Business Card Verified</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="radio" name="contact.idVerified" value="Yes"> Yes</label>
+                <label><input type="radio" name="contact.idVerified" value="No"> No</label>
+                <label><input type="radio" name="contact.idVerified" value="Not Applicable"> Not Applicable</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row multi-line">
+            <div class="field-label">Statement / Confirmation Given</div>
+            <div class="field-value"><textarea name="contact.statement"></textarea></div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+
+    <!-- PAGE 3 -->
+    <div class="print-page page-3">
+
+      <section>
+        <h2>6. DIRECTORS / PARTNERS / KEY PERSONS</h2>
+        <table id="persons">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Designation</th>
+      <th>DIN / ID, if applicable</th>
+      <th>Verification / Remarks</th>
+      <th class="action-col"></th>
+    </tr>
+  </thead>
+
+  <tbody></tbody>
+</table>
+        <button
+  type="button"
+  class="secondary add-person-btn"
+  id="addPerson"
+>
+  + Add person
+</button>
+      </section>
+
+      <section>
+        <h2>7. STATUTORY / CORPORATE VERIFICATION</h2>
+        <div class="form-table">
+
+          <div class="form-row">
+            <div class="field-label">GST Status</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="radio" name="statutory.gstStatus" value="Active"> Active</label>
+                <label><input type="radio" name="statutory.gstStatus" value="Cancelled"> Cancelled</label>
+                <label><input type="radio" name="statutory.gstStatus" value="Suspended"> Suspended</label>
+                <label><input type="radio" name="statutory.gstStatus" value="Not Verified"> Not Verified</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">GST Legal Name Match</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="radio" name="statutory.gstNameMatch" value="Matches"> Matches</label>
+                <label><input type="radio" name="statutory.gstNameMatch" value="Does Not Match"> Does Not Match</label>
+                <label><input type="radio" name="statutory.gstNameMatch" value="Partially"> Partially</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">PAN / Corporate Identity</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="radio" name="statutory.panIdentity" value="Verified"> Verified</label>
+                <label><input type="radio" name="statutory.panIdentity" value="Not Verified"> Not Verified</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">MCA / Corporate Records</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="radio" name="statutory.mcaRecords" value="Verified"> Verified</label>
+                <label><input type="radio" name="statutory.mcaRecords" value="Not Verified"> Not Verified</label>
+                <label><input type="radio" name="statutory.mcaRecords" value="Not Applicable"> Not Applicable</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">Registered Address Match</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="radio" name="statutory.addressMatch" value="Yes"> Yes</label>
+                <label><input type="radio" name="statutory.addressMatch" value="No"> No</label>
+                <label><input type="radio" name="statutory.addressMatch" value="Partially"> Partially</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">Business Activity Consistency</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="radio" name="statutory.activityConsistency" value="Consistent"> Consistent</label>
+                <label><input type="radio" name="statutory.activityConsistency" value="Inconsistent"> Inconsistent</label>
+                <label><input type="radio" name="statutory.activityConsistency" value="Unable to Determine"> Unable to Determine</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">Other Registration / Licence</div>
+            <div class="field-value"><input name="statutory.otherLicence"></div>
+          </div>
+
+          <div class="form-row multi-line">
+            <div class="field-label">Verification Sources / Reference</div>
+            <div class="field-value"><textarea name="statutory.sources"></textarea></div>
+          </div>
+
+        </div>
+      </section>
+
+      <section>
+        <h2>8. BUSINESS &amp; OPERATIONAL ASSESSMENT</h2>
+        <div class="form-table">
+
+          <div class="form-row multi-line">
+            <div class="field-label">Nature of Operations Observed</div>
+            <div class="field-value"><textarea name="operations.natureObserved"></textarea></div>
+          </div>
+
+          <div class="form-row multi-line">
+            <div class="field-label">Products / Services</div>
+            <div class="field-value"><textarea name="operations.productsServices"></textarea></div>
+          </div>
+
+          <div class="form-row multi-line">
+            <div class="field-label">Customer / Vendor Activity Observed</div>
+            <div class="field-value"><textarea name="operations.customerVendorActivity"></textarea></div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">Operational Infrastructure</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="radio" name="operations.infrastructure" value="Adequate"> Adequate</label>
+                <label><input type="radio" name="operations.infrastructure" value="Limited"> Limited</label>
+                <label><input type="radio" name="operations.infrastructure" value="Not Observed"> Not Observed</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">Business Signage / Branding</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="radio" name="operations.branding" value="Established"> Established</label>
+                <label><input type="radio" name="operations.branding" value="Basic"> Basic</label>
+                <label><input type="radio" name="operations.branding" value="Not Observed"> Not Observed</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">Approx. Business Scale</div>
+            <div class="field-value"><input name="operations.businessScale"></div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">Overall Business Presence</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="radio" name="operations.businessPresence" value="Strong"> Strong</label>
+                <label><input type="radio" name="operations.businessPresence" value="Moderate"> Moderate</label>
+                <label><input type="radio" name="operations.businessPresence" value="Weak"> Weak</label>
+                <label><input type="radio" name="operations.businessPresence" value="Unable to Assess"> Unable to Assess</label>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <section>
+        <h2>9. VERIFICATION OBSERVATIONS &amp; RED FLAGS</h2>
+        <div class="form-table">
+
+          <div class="form-row observation-row">
+            <div class="field-label">Positive Observations</div>
+            <div class="field-value numbered-area">
+              <div><span>1.</span><input name="observations.positive1"></div>
+              <div><span>2.</span><input name="observations.positive2"></div>
+              <div><span>3.</span><input name="observations.positive3"></div>
+            </div>
+          </div>
+
+          <div class="form-row observation-row">
+            <div class="field-label">Discrepancies Identified</div>
+            <div class="field-value numbered-area">
+              <div><span>1.</span><input name="observations.discrepancy1"></div>
+              <div><span>2.</span><input name="observations.discrepancy2"></div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+
+    <!-- PAGE 4 -->
+    <div class="print-page page-4">
+
+      <section>
+        <div class="form-table">
+
+          <div class="form-row redflag-row">
+            <div class="field-label">Red Flags / Risk Indicators</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="checkbox" name="observations.redFlags" value="None Observed"> None Observed</label>
+                <label><input type="checkbox" name="observations.redFlags" value="Address mismatch"> Address mismatch</label>
+                <label><input type="checkbox" name="observations.redFlags" value="Non-operational site"> Non-operational site</label>
+                <label><input type="checkbox" name="observations.redFlags" value="Unverifiable person"> Unverifiable person</label>
+                <label><input type="checkbox" name="observations.redFlags" value="Inconsistent business activity"> Inconsistent business activity</label>
+                <label><input type="checkbox" name="observations.redFlags" value="Other"> Other:</label>
+                <input class="other-redflag" name="observations.otherRedFlag">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row multi-line">
+            <div class="field-label">Additional Remarks</div>
+            <div class="field-value"><textarea name="observations.remarks"></textarea></div>
+          </div>
+
+        </div>
+      </section>
+
+      <section>
+        <h2>10. VERIFICATION OUTCOME</h2>
+        <div class="form-table">
+
+          <div class="form-row">
+            <div class="field-label">Overall Result</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="radio" name="outcome.overallResult" value="VERIFIED"> VERIFIED</label>
+                <label><input type="radio" name="outcome.overallResult" value="PARTIALLY VERIFIED"> PARTIALLY VERIFIED</label>
+                <label><input type="radio" name="outcome.overallResult" value="NOT VERIFIED"> NOT VERIFIED</label>
+                <label><input type="radio" name="outcome.overallResult" value="ADVERSE / HIGH RISK"> ADVERSE / HIGH RISK</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-label">Recommended Action</div>
+            <div class="field-value">
+              <div class="options">
+                <label><input type="radio" name="outcome.recommendedAction" value="Proceed"> Proceed</label>
+                <label><input type="radio" name="outcome.recommendedAction" value="Proceed Subject to Review"> Proceed Subject to Review</label>
+                <label><input type="radio" name="outcome.recommendedAction" value="Seek Additional Documents"> Seek Additional Documents</label>
+                <label><input type="radio" name="outcome.recommendedAction" value="Escalate / Reject"> Escalate / Reject</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row summary-row">
+            <div class="field-label">Verifier's Summary</div>
+            <div class="field-value"><textarea name="outcome.summary"></textarea></div>
+          </div>
+
+        </div>
+      </section>
+
+      <section>
+        <h2>11. VERIFIER CERTIFICATION</h2>
+
+        <p class="legal">
+          I certify that the above verification was conducted at the stated location and that the information recorded in this form reflects the observations and documents available to me at the time of verification. Photographs, GPS/location information and personal information should be collected and processed only where permitted by applicable law and the engagement instructions.
+        </p>
+
+        <div class="form-table certification-table">
+          <div class="form-row"><div class="field-label">Verifier Name</div><div class="field-value"><input name="certification.verifierName"></div></div>
+          <div class="form-row"><div class="field-label">Designation / Agency</div><div class="field-value"><input name="certification.designationAgency"></div></div>
+          <div class="form-row"><div class="field-label">Signature</div><div class="field-value"><input name="certification.signature"></div></div>
+          <div class="form-row"><div class="field-label">Date</div><div class="field-value"><input type="date" name="certification.date"></div></div>
+          <div class="form-row"><div class="field-label">Reviewer Name / Signature</div><div class="field-value"><input name="certification.reviewer"></div></div>
+          <div class="form-row"><div class="field-label">Final Review Date</div><div class="field-value"><input type="date" name="certification.reviewDate"></div></div>
+        </div>
+
+        <p class="confidentiality">
+          <b>Confidentiality:</b> This document may contain confidential business and personal information and should be handled, stored and shared only for the authorised verification purpose.
+        </p>
+      </section>
+
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="actions">
+      <button type="submit" form="verificationForm">Save Form</button>
+      <button type="button" class="secondary" id="printBtn">Print</button>
+      <button type="button" class="secondary" id="downloadBtn" disabled>Download PDF</button>
+      <span id="status"></span>
+    </div>
+
+  </main>
+
+  <script src="cv-form.js"></script>
+  <script src="clientverificationPrint.js"></script>
+</body>
+</html>
