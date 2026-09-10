@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Verification Admin</title>
+  <link rel="stylesheet" href="clientAdmin.css">
+</head>
+<body>
+  <main class="admin-shell">
+    <header class="admin-header">
+      <div><p class="eyebrow">Operations</p><h1>Client Verification Admin</h1></div>
+      <a href="/cilentverification.html">Open Client Form</a>
+    </header>
+    <section class="summary-grid">
+      <article><span>Total Client Verifications</span><strong id="totalCount">-</strong></article>
+      <article><span>Verified</span><strong id="verifiedCount">-</strong></article>
+      <article><span>Partially Verified</span><strong id="partialCount">-</strong></article>
+      <article><span>High Risk / Adverse</span><strong id="riskCount">-</strong></article>
+    </section>
+    <section class="records-panel">
+      <div class="toolbar">
+        <label>Search<input id="searchInput" type="search" placeholder="Legal name, PAN, GSTIN or reference number"></label>
+        <label>Sort<select id="sortSelect"><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="name">Legal name</option><option value="result">Overall result</option></select></label>
+      </div>
+      <p id="listStatus" role="status"></p>
+      <div class="table-wrap"><table><thead><tr><th>Form ID</th><th>Legal Name</th><th>Constitution</th><th>PAN</th><th>GSTIN</th><th>Reference No.</th><th>Result</th><th>Submitted</th><th>Actions</th></tr></thead><tbody id="recordsBody"></tbody></table></div>
+    </section>
+  </main>
+  <dialog id="detailDialog"><header><h2 id="detailTitle">Client Verification Details</h2><button id="closeDialog" type="button">×</button></header><div id="detailContent"></div></dialog>
+  <script src="clientAdmin.js"></script>
+</body>
+</html>
