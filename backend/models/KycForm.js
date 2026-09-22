@@ -30,6 +30,21 @@ const documentChecklistSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const digioSchema = new mongoose.Schema(
+  {
+    customerIdentifier: String,
+    referenceId: String,
+    requestId: String,
+    kid: String,
+    rid: String,
+    accessToken: { type: String, select: false },
+    status: String,
+    lastAction: String,
+    lastSyncedAt: Date,
+  },
+  { _id: false }
+);
+
 const kycFormSchema = new mongoose.Schema(
   {
     // A. Identity Details
@@ -128,6 +143,17 @@ const kycFormSchema = new mongoose.Schema(
     documentsSeenAndVerified: { type: Boolean, default: false },
     panCardMandatory: { type: Boolean, default: false },
     gstIfApplicable: { type: Boolean, default: false },
+
+    // DigiO identifiers are server-side metadata; accessToken is excluded from normal queries.
+    digio: { type: digioSchema, default: undefined },
+
+    status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+    approvalInProgress: { type: Boolean, default: false, select: false },
+    rejectionReason: { type: String, trim: true },
+    approvedBy: { type: String, trim: true },
+    approvedAt: Date,
+    rejectedBy: { type: String, trim: true },
+    rejectedAt: Date,
   },
   { timestamps: true, collection: "kycApplications" }
 );

@@ -1,6 +1,8 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const KycForm = require("../models/KycForm");
+const digio = require("../services/digioService");
+const requireAdmin = require("../middleware/adminAuth");
 
 const router = express.Router();
 const PAGE_SIZE_DEFAULT = 25;
@@ -105,6 +107,71 @@ router.get("/:id", async (req, res) => {
   } catch (err) {
     console.error(`Admin KYC detail error (${req.params.id}):`, err);
     res.status(500).json({ success: false, message: "Unable to load KYC record." });
+  }
+});
+
+router.post("/:id/approve", requireAdmin, async (req, res) => {
+  let record;
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid KYC ID." });
+    }
+
+    record = await KycForm.findOneAndUpdate(
+      { _id: req.params.id, status: { $in: ["pending", null] }, approvalInProgress: { $ne: true } },
+      { $set: { approvalInProgress: true } },
+      { new: true }
+    );
+    if (!record) {
+      const existing = await KycForm.findById(req.params.id).select("status").lean();
+      if (!existing) return res.status(404).json({ success: false, message: "KYC record not found." });
+      return res.status(409).json({ success: false, message: `KYC record is already ${existing.status || "being processed"}.` });
+    }
+
+    const kid = record.digio && record.digio.kid;
+    if (!kid) {
+      await KycForm.updateOne({ _id: record._id }, { $set: { approvalInProgress: false } });
+      return res.status(400).json({ success: false, message: "This KYC record has no DigiO KID." });
+    }
+
+    await digio.manageApproval(kid, "approved");
+    const approved = await KycForm.findOneAndUpdate(
+      { _id: record._id, status: { $in: ["pending", null] } },
+      { $set: { status: "approved", approvedBy: req.adminId, approvedAt: new Date(), approvalInProgress: false, "digio.status": "approved", "digio.lastAction": "approval", "digio.lastSyncedAt": new Date() } },
+      { new: true }
+    ).lean();
+    return res.json({ success: true, data: { id: approved._id, status: approved.status } });
+  } catch (error) {
+    if (record) await KycForm.updateOne({ _id: record._id }, { $set: { approvalInProgress: false } });
+    console.error(`Admin KYC approval error (${req.params.id}):`, error);
+    if (error.code === "DIGIO_NOT_CONFIGURED") return res.status(503).json({ success: false, message: error.message, code: error.code });
+    if (error.code === "DIGIO_PROVIDER_ERROR") return res.status(502).json({ success: false, message: error.message, code: error.code });
+    return res.status(500).json({ success: false, message: "Unable to approve KYC record." });
+  }
+});
+
+router.post("/:id/reject", requireAdmin, async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid KYC ID." });
+    }
+    const reason = String(req.body.reason || "").trim();
+    if (!reason) return res.status(400).json({ success: false, message: "Rejection reason is required." });
+
+    const rejected = await KycForm.findOneAndUpdate(
+      { _id: req.params.id, status: { $in: ["pending", null] }, approvalInProgress: { $ne: true } },
+      { $set: { status: "rejected", rejectionReason: reason, rejectedBy: req.adminId, rejectedAt: new Date() } },
+      { new: true }
+    ).lean();
+    if (!rejected) {
+      const existing = await KycForm.findById(req.params.id).select("status").lean();
+      if (!existing) return res.status(404).json({ success: false, message: "KYC record not found." });
+      return res.status(409).json({ success: false, message: `KYC record is already ${existing.status || "being processed"}.` });
+    }
+    return res.json({ success: true, data: { id: rejected._id, status: rejected.status } });
+  } catch (error) {
+    console.error(`Admin KYC rejection error (${req.params.id}):`, error);
+    return res.status(500).json({ success: false, message: "Unable to reject KYC record." });
   }
 });
 

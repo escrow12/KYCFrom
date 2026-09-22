@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const kycRoutes = require("./routes/kycRoutes");
 const clientVerificationRoutes = require("./routes/clientverificationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const digioRoutes = require("./routes/digioRoutes");
 
 const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
 
@@ -25,6 +26,7 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/api/kyc", kycRoutes);
 app.use("/api/client-verification", clientVerificationRoutes);
 app.use("/api/admin/kyc", adminRoutes);
+app.use("/api/kyc", digioRoutes);
 
 // Fallback to index.html for the root
 app.get("/", (req, res) => {

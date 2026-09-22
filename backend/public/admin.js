@@ -7,9 +7,17 @@ const detailDialog = document.getElementById("detailDialog");
 const detailContent = document.getElementById("detailContent");
 const detailTitle = document.getElementById("detailTitle");
 const closeDialog = document.getElementById("closeDialog");
+const adminKeyInput = document.getElementById("adminKeyInput");
+const rejectDialog = document.getElementById("rejectDialog");
+const rejectForm = document.getElementById("rejectForm");
+const rejectionReason = document.getElementById("rejectionReason");
+const closeRejectDialog = document.getElementById("closeRejectDialog");
+const cancelReject = document.getElementById("cancelReject");
+const toast = document.getElementById("toast");
 
 let currentPage = 1;
 let searchTimer;
+let pendingRejectId = null;
 
 const fields = {
   "SECTION A": [
@@ -41,19 +49,24 @@ function display(value, date = false, boolean = false) {
   if (date) return new Date(value).toLocaleDateString("en-IN");
   return escapeHtml(value);
 }
+function statusValue(record) { return record.status || "pending"; }
+function statusBadge(value) { const status = String(value || "pending"); const className = status.replace(/\s+/g, "-"); return `<span class="status-badge status-${escapeHtml(className)}">${escapeHtml(status)}</span>`; }
+function customerIdentifier(record) { return record.digio?.customerIdentifier || record.email || record.authSignatoryEmail || "N/A"; }
+function requestIdentifier(record) { return record.digio?.kid || record.digio?.requestId || "N/A"; }
+function referenceIdentifier(record) { return record.digio?.referenceId || record.corporateIdOrSapId || record._id; }
+function showToast(message, type = "success") { toast.textContent = message; toast.className = `toast visible ${type}`; window.clearTimeout(showToast.timer); showToast.timer = window.setTimeout(() => { toast.className = "toast"; }, 3500); }
+function adminHeaders() { const key = adminKeyInput.value.trim(); return key ? { "x-admin-api-key": key, "x-admin-id": "admin" } : {}; }
 function pdfUrl(id) { return `/api/kyc/${encodeURIComponent(id)}/pdf`; }
 function downloadPdf(id) {
   const link = document.createElement("a"); link.href = pdfUrl(id); link.download = `KYC-${id}.pdf`; document.body.appendChild(link); link.click(); link.remove();
 }
 function actionButtons(id) {
-  return `<div class="action-group"><button data-action="view" data-id="${escapeHtml(id)}">View</button><button class="secondary" data-action="download" data-id="${escapeHtml(id)}">Download</button><button class="secondary" data-action="print" data-id="${escapeHtml(id)}">Print</button></div>`;
+  return `<div class="action-group"><button data-action="view" data-id="${escapeHtml(id)}">View Details</button><button data-action="approve" data-id="${escapeHtml(id)}">Approve</button><button class="danger" data-action="reject" data-id="${escapeHtml(id)}">Reject</button><button class="secondary" data-action="download" data-id="${escapeHtml(id)}">PDF</button></div>`;
 }
 function renderTable(records) {
   recordsBody.innerHTML = records.length ? records.map((record) => `<tr>
-    <td>${escapeHtml(record._id)}</td><td>${display(record.entityName)}</td><td>${display(record.entityType)}</td><td>${display(record.entityPan)}</td>
-    <td>${display(record.corporateIdOrSapId)}</td><td>${display(record.productType)}${record.productType === "Other" && record.productTypeOther ? ` (${display(record.productTypeOther)})` : ""}</td>
-    <td>${display(record.registrationNo)}</td><td>${display(record.incorporationDate, true)}</td><td>${display(record.phone)}</td><td>${display(record.website)}</td>
-    <td>${display(record.createdAt, true)}</td><td>${actionButtons(record._id)}</td>
+    <td>${display(record.entityName)}</td><td>${display(customerIdentifier(record))}</td><td>${display(requestIdentifier(record))}</td><td>${display(referenceIdentifier(record))}</td>
+    <td>${statusBadge(statusValue(record))}</td><td>${statusBadge(record.digio?.status || "not synced")}</td><td>${display(record.createdAt, true)}</td><td>${actionButtons(record._id)}</td>
   </tr>`).join("") : '<tr><td colspan="12" class="empty">No KYC submissions found.</td></tr>';
 }
 function renderPagination(info) {
@@ -84,13 +97,29 @@ function renderDetail(record) {
   const documentHtml = `<section class="detail-section"><h3>SECTION D - KYC DOCUMENT CHECKLIST</h3><table class="detail-table"><thead><tr><th>Document Name</th><th>Selected</th><th>Verification Method</th></tr></thead><tbody>${docs.length ? docs.map((doc) => `<tr><td>${display(doc.name || doc)}</td><td>${display(doc.selected, false, true)}</td><td>${display(doc.verificationMethod || "N/A")}</td></tr>`).join("") : '<tr><td colspan="3">N/A</td></tr>'}</tbody></table></section>`;
   const owners = Array.isArray(record.beneficialOwners) ? record.beneficialOwners : [];
   const ownersHtml = `<section class="detail-section"><h3>BENEFICIAL OWNERSHIP</h3><table class="detail-table"><thead><tr><th>Name</th><th>Designation</th><th>DIN</th><th>PAN</th><th>Percentage Holding</th></tr></thead><tbody>${owners.length ? owners.map((owner) => `<tr><td>${display(owner.name)}</td><td>${display(owner.designation)}</td><td>${display(owner.din)}</td><td>${display(owner.panNo)}</td><td>${display(owner.percentageHolding)}</td></tr>`).join("") : '<tr><td colspan="5">N/A</td></tr>'}</tbody></table></section>`;
-  detailTitle.textContent = `${record.entityName || "KYC Details"}`; detailContent.innerHTML = Object.keys(fields).slice(0, 3).map((title) => sectionHtml(title, record)).join("") + documentHtml + ownersHtml + Object.keys(fields).slice(3).map((title) => sectionHtml(title, record)).join("");
+  const workflowHtml = `<section class="detail-section"><h3>WORKFLOW</h3><div class="detail-grid"><div class="detail-item"><span class="detail-label">Status</span><span class="detail-value">${statusBadge(statusValue(record))}</span></div><div class="detail-item"><span class="detail-label">Customer Identifier</span><span class="detail-value">${display(customerIdentifier(record))}</span></div><div class="detail-item"><span class="detail-label">KYC / Request ID</span><span class="detail-value">${display(requestIdentifier(record))}</span></div><div class="detail-item"><span class="detail-label">Reference ID</span><span class="detail-value">${display(referenceIdentifier(record))}</span></div><div class="detail-item"><span class="detail-label">Rejection Reason</span><span class="detail-value">${display(record.rejectionReason)}</span></div></div></section>`;
+  detailTitle.textContent = `${record.entityName || "KYC Details"}`; detailContent.innerHTML = workflowHtml + Object.keys(fields).slice(0, 3).map((title) => sectionHtml(title, record)).join("") + documentHtml + ownersHtml + Object.keys(fields).slice(3).map((title) => sectionHtml(title, record)).join("");
   detailDialog.showModal();
 }
 async function viewRecord(id) { try { const response = await fetch(`/api/admin/kyc/${encodeURIComponent(id)}`); const result = await response.json(); if (!response.ok || !result.success) throw new Error(result.message || "Unable to load record"); renderDetail(result.data); } catch (error) { listStatus.textContent = error.message; listStatus.className = "list-status error"; } }
-recordsBody.addEventListener("click", (event) => { const button = event.target.closest("button[data-action]"); if (!button) return; const id = button.dataset.id; if (button.dataset.action === "view") viewRecord(id); if (button.dataset.action === "download") downloadPdf(id); if (button.dataset.action === "print") window.open(pdfUrl(id), "_blank"); });
+async function updateStatus(id, action, body = {}) {
+  const button = recordsBody.querySelector(`button[data-action="${action}"][data-id="${CSS.escape(id)}"]`);
+  if (button) { button.disabled = true; button.textContent = "Working..."; }
+  try {
+    const response = await fetch(`/api/admin/kyc/${encodeURIComponent(id)}/${action}`, { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify(body) });
+    const result = await response.json();
+    if (!response.ok || !result.success) throw new Error(result.message || "Unable to update KYC status");
+    showToast(`KYC ${action === "approve" ? "approved" : "rejected"} successfully.`);
+    await loadRecords();
+  } catch (error) { showToast(error.message, "error"); if (button) { button.disabled = false; button.textContent = action === "approve" ? "Approve" : "Reject"; } }
+}
+function openReject(id) { pendingRejectId = id; rejectionReason.value = ""; rejectDialog.showModal(); rejectionReason.focus(); }
+recordsBody.addEventListener("click", async (event) => { const button = event.target.closest("button[data-action]"); if (!button) return; const id = button.dataset.id; if (button.dataset.action === "view") viewRecord(id); if (button.dataset.action === "download") downloadPdf(id); if (button.dataset.action === "approve" && window.confirm("Approve this KYC request? DigiO approval will be called.")) updateStatus(id, "approve"); if (button.dataset.action === "reject") openReject(id); });
+rejectForm.addEventListener("submit", (event) => { event.preventDefault(); const reason = rejectionReason.value.trim(); if (!reason) { showToast("Rejection reason is required.", "error"); return; } if (!window.confirm("Confirm rejection of this KYC request?")) return; rejectDialog.close(); updateStatus(pendingRejectId, "reject", { reason }); });
 searchInput.addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { currentPage = 1; loadRecords(); }, 250); });
 sortSelect.addEventListener("change", () => { currentPage = 1; loadRecords(); });
 closeDialog.addEventListener("click", () => detailDialog.close());
+closeRejectDialog.addEventListener("click", () => rejectDialog.close());
+cancelReject.addEventListener("click", () => rejectDialog.close());
 detailDialog.addEventListener("click", (event) => { if (event.target === detailDialog) detailDialog.close(); });
 loadRecords();

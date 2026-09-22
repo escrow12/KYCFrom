@@ -2,15 +2,47 @@ const express = require("express");
 const router = express.Router();
 const KycForm = require("../models/KycForm");
 const generateKycPdf = require("../utils/generatePdf");
+const digio = require("../services/digioService");
 
 // Create a new KYC form submission
 router.post("/", async (req, res) => {
   try {
     const record = await KycForm.create(req.body);
+    let digioData;
+    if (String(process.env.DIGIO_AUTO_REQUEST).toLowerCase() === "true") {
+      const payload = {
+        customer_identifier: record.email || record.authSignatoryEmail,
+        customer_name: record.entityName,
+        reference_id: String(record._id),
+        template_name: process.env.DIGIO_TEMPLATE_NAME,
+        notify_customer: true,
+        generate_access_token: true,
+        request_details: {},
+      };
+      const providerResponse = await digio.createRequest(payload);
+      const identifiers = digio.extractIdentifiers(providerResponse.data);
+      record.digio = {
+        customerIdentifier: payload.customer_identifier,
+        referenceId: payload.reference_id,
+        ...identifiers,
+        status: "requested",
+        lastAction: "request",
+        lastSyncedAt: new Date(),
+      };
+      await record.save();
+      digioData = { ...identifiers, accessToken: undefined };
+    }
     console.log(`KYC application saved: ${record._id}`);
-    res.status(201).json({ success: true, id: record._id });
+    res.status(201).json({ success: true, id: record._id, ...(digioData ? { digio: digioData } : {}) });
   } catch (err) {
     console.error("KYC application save error:", err);
+    if (err.code && err.code.startsWith("DIGIO_")) {
+      return res.status(err.code === "DIGIO_NOT_CONFIGURED" ? 503 : 502).json({
+        success: false,
+        message: err.message,
+        code: err.code,
+      });
+    }
     res.status(400).json({
       success: false,
       message: err.message,
