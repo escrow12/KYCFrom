@@ -136,6 +136,7 @@ function addBoRow(data = {}) {
   const tr = document.createElement("tr");
   tr.innerHTML = `
     <td><input type="text" class="bo-name" value="${data.name || ""}" /></td>
+    <td><input type="email" class="bo-email" value="${data.email || ""}" /></td>
     <td><input type="text" class="bo-designation" value="${data.designation || ""}" /></td>
     <td><input type="text" class="bo-din" value="${data.din || ""}" /></td>
     <td><input type="text" class="bo-pan" value="${data.panNo || ""}" /></td>
@@ -153,6 +154,7 @@ function collectBeneficialOwners() {
   return Array.from(boTableBody.querySelectorAll("tr"))
     .map((tr) => ({
       name: tr.querySelector(".bo-name").value.trim(),
+      email: tr.querySelector(".bo-email").value.trim().toLowerCase(),
       designation: tr.querySelector(".bo-designation").value.trim(),
       din: tr.querySelector(".bo-din").value.trim(),
       panNo: tr.querySelector(".bo-pan").value.trim(),
@@ -245,6 +247,7 @@ form.addEventListener("submit", async (e) => {
     documentsVerified: collectCheckedDocs(),
     documentChecklist: collectDocumentChecklist(),
     beneficialOwners: collectBeneficialOwners(),
+    directors: collectBeneficialOwners(),
     declarationAccepted: !!fd.get("declarationAccepted"),
     signedPlace: fd.get("signedPlace"),
     signedDate: fd.get("signedDate") || undefined,

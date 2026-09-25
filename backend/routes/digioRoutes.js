@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const KycForm = require("../models/KycForm");
 const digio = require("../services/digioService");
+const requireAdmin = require("../middleware/adminAuth");
 
 const router = express.Router();
 
@@ -10,8 +11,8 @@ function isValidId(id) {
 }
 
 function providerErrorResponse(res, error) {
-  const status = error.code === "DIGIO_NOT_CONFIGURED" ? 503 : error.code === "DIGIO_PROVIDER_ERROR" ? 502 : 504;
-  return res.status(status).json({ success: false, message: error.message, code: error.code });
+  const status = error.code === "DIGIO_NOT_CONFIGURED" ? 503 : ["DIGIO_PROVIDER_ERROR", "DIGIO_INVALID_RESPONSE"].includes(error.code) ? 502 : 504;
+  return res.status(status).json({ success: false, message: error.providerData?.message || error.message, code: error.code, providerCode: error.providerData?.code });
 }
 
 function validateObject(value, name) {
@@ -80,22 +81,29 @@ async function saveProviderIdentifiers(record, action, responseData, status) {
   return identifiers;
 }
 
-router.post("/:id/request", async (req, res) => {
+router.post("/:id/request", requireAdmin, async (req, res) => {
   try {
     const record = await getRecord(req, res);
     if (!record) return;
+    if (record.digio && (record.digio.kid || record.digio.requestId)) {
+      return res.status(409).json({ success: false, message: "A DigiO KYC request already exists for this application." });
+    }
     const payload = buildRequestPayload(record, req.body || {});
     const response = await digio.createRequest(payload);
-    const identifiers = await saveProviderIdentifiers(record, "request", response.data, "requested");
+    const identifiers = digio.extractIdentifiers(response.data);
+    if (!identifiers.kid && !identifiers.requestId) {
+      return res.status(502).json({ success: false, message: "DigiO response did not contain a request identifier.", code: "DIGIO_INVALID_RESPONSE" });
+    }
+    await saveProviderIdentifiers(record, "request", response.data, "requested");
     res.status(201).json({ success: true, data: { id: record._id, ...identifiers } });
   } catch (error) {
     if (error.code === "DIGIO_INVALID_REQUEST") return res.status(400).json({ success: false, message: error.message, code: error.code });
-    console.error("DigiO KYC request error:", error);
+    console.error("DigiO KYC request error:", error.code || error.message);
     return providerErrorResponse(res, error);
   }
 });
 
-router.post("/:id/details", async (req, res) => {
+router.post("/:id/details", requireAdmin, async (req, res) => {
   try {
     const record = await getRecord(req, res);
     if (!record) return;
@@ -105,12 +113,12 @@ router.post("/:id/details", async (req, res) => {
     await saveProviderIdentifiers(record, "details", response.data);
     res.json({ success: true, data: digio.redactSecrets(response.data) });
   } catch (error) {
-    console.error("DigiO request details error:", error);
+    console.error("DigiO request details error:", error.code || error.message);
     return providerErrorResponse(res, error);
   }
 });
 
-router.get("/:id/download", async (req, res) => {
+router.get("/:id/download", requireAdmin, async (req, res) => {
   try {
     const record = await getRecord(req, res);
     if (!record) return;
@@ -127,7 +135,7 @@ router.get("/:id/download", async (req, res) => {
   }
 });
 
-router.post("/:id/approval", async (req, res) => {
+router.post("/:id/approval", requireAdmin, async (req, res) => {
   try {
     const record = await getRecord(req, res);
     if (!record) return;
@@ -145,7 +153,7 @@ router.post("/:id/approval", async (req, res) => {
   }
 });
 
-router.post("/:id/reattempt", async (req, res) => {
+router.post("/:id/reattempt", requireAdmin, async (req, res) => {
   try {
     const record = await getRecord(req, res);
     if (!record) return;
@@ -167,7 +175,7 @@ router.post("/:id/reattempt", async (req, res) => {
   }
 });
 
-router.post("/:id/token", async (req, res) => {
+router.post("/:id/token", requireAdmin, async (req, res) => {
   try {
     const record = await getRecord(req, res);
     if (!record) return;

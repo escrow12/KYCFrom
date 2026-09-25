@@ -7,14 +7,28 @@
   <link rel="stylesheet" href="admin.css" />
 </head>
 <body>
-  <main class="admin-shell">
+  <section id="loginPanel" class="login-panel" aria-labelledby="loginTitle">
+    <div class="login-card">
+      <p class="eyebrow">Restricted access</p>
+      <h1 id="loginTitle">Admin sign in</h1>
+      <form id="loginForm">
+        <label for="loginIdentifier">Email or username</label>
+        <input id="loginIdentifier" name="identifier" type="text" autocomplete="username" required />
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" name="password" type="password" autocomplete="current-password" required />
+        <button type="submit">Sign in</button>
+        <p id="loginStatus" class="login-status" role="alert"></p>
+      </form>
+    </div>
+  </section>
+  <main id="adminApp" class="admin-shell" hidden>
     <header class="admin-header">
       <img src="logo.png" alt="Company Logo" class="admin-logo" onerror="this.style.display='none'" />
       <div>
         <p class="eyebrow">Operations</p>
         <h1>KYC Admin Panel</h1>
       </div>
-      <a class="customer-link" href="/">Open Customer Form</a>
+      <div class="header-actions"><a class="customer-link" href="/">Open Customer Form</a><button id="logoutButton" class="secondary" type="button">Sign out</button></div>
     </header>
 
     <section class="summary-grid" aria-label="KYC summary">
@@ -38,10 +52,6 @@
             <option value="name">Entity name</option>
             <option value="type">Entity type</option>
           </select>
-        </label>
-        <label class="admin-key-wrap">
-          <span>Admin access key</span>
-          <input id="adminKeyInput" type="password" autocomplete="off" placeholder="Required for approval/rejection" />
         </label>
       </div>
       <p id="listStatus" class="list-status" role="status"></p>

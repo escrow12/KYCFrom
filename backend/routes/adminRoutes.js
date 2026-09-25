@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 const KycForm = require("../models/KycForm");
 const digio = require("../services/digioService");
 const requireAdmin = require("../middleware/adminAuth");
+const crypto = require("crypto");
+const generateKycPdf = require("../utils/generatePdf");
 
 const router = express.Router();
 const PAGE_SIZE_DEFAULT = 25;
@@ -46,7 +48,80 @@ function getSort(sort) {
   }
 }
 
-router.get("/", async (req, res) => {
+function directorPayload(record, director) {
+  return {
+    customer_identifier: director.email,
+    customer_name: director.name,
+    reference_id: `${record._id}:director:${director._id}:${crypto.randomBytes(5).toString("hex")}`,
+    template_name: process.env.DIGIO_TEMPLATE_NAME || "KYC",
+    notify_customer: true,
+    generate_access_token: true,
+    request_details: { director_id: String(director._id), application_id: String(record._id) },
+  };
+}
+
+function parentPayload(record) {
+  return {
+    customer_identifier: record.email || record.authSignatoryEmail,
+    customer_name: record.entityName,
+    reference_id: `${record._id}:application:${crypto.randomBytes(6).toString("hex")}`,
+    template_name: process.env.DIGIO_TEMPLATE_NAME || "KYC",
+    notify_customer: true,
+    generate_access_token: true,
+    request_details: { application_id: String(record._id) },
+  };
+}
+
+async function requestParentKyc(record) {
+  const payload = parentPayload(record);
+  if (!payload.customer_identifier || !payload.customer_name) {
+    const error = new Error("A customer email and name are required before DigiO approval.");
+    error.code = "DIGIO_INVALID_REQUEST";
+    throw error;
+  }
+  const response = await digio.createRequest(payload);
+  const identifiers = digio.extractIdentifiers(response.data);
+  const requestId = identifiers.kid || identifiers.requestId;
+  if (!requestId) {
+    const error = new Error("DigiO response did not contain a request identifier.");
+    error.code = "DIGIO_INVALID_RESPONSE";
+    throw error;
+  }
+  record.digio = {
+    ...(record.digio ? record.digio.toObject() : {}),
+    customerIdentifier: payload.customer_identifier,
+    referenceId: payload.reference_id,
+    ...identifiers,
+    status: "requested",
+    lastAction: "request",
+    lastSyncedAt: new Date(),
+  };
+  return requestId;
+}
+
+async function requestDirectorKyc(record, director) {
+  if (director.digio && (director.digio.kid || director.digio.requestId)) return;
+  const payload = directorPayload(record, director);
+  const response = await digio.createRequest(payload);
+  const identifiers = digio.extractIdentifiers(response.data);
+  if (!identifiers.kid && !identifiers.requestId) {
+    const error = new Error("DigiO director KYC response did not contain a request identifier.");
+    error.code = "DIGIO_INVALID_RESPONSE";
+    throw error;
+  }
+  director.digio = {
+    customerIdentifier: director.email,
+    referenceId: payload.reference_id,
+    ...identifiers,
+    accessLink: identifiers.accessLink,
+    status: "requested",
+    lastAction: "request",
+    lastSyncedAt: new Date(),
+  };
+  director.status = "requested";
+}
+
+router.get("/", requireAdmin, async (req, res) => {
   try {
     const page = Math.max(Number.parseInt(req.query.page, 10) || 1, 1);
     const limit = Math.min(
@@ -92,7 +167,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireAdmin, async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ success: false, message: "Invalid KYC ID." });
@@ -128,25 +203,128 @@ router.post("/:id/approve", requireAdmin, async (req, res) => {
       return res.status(409).json({ success: false, message: `KYC record is already ${existing.status || "being processed"}.` });
     }
 
-    const kid = record.digio && record.digio.kid;
-    if (!kid) {
+    let kid = record.digio && (record.digio.kid || record.digio.requestId);
+    if (!kid) kid = await requestParentKyc(record);
+
+    if (record.directors && record.directors.length && record.directors.some((director) => !director.email)) {
       await KycForm.updateOne({ _id: record._id }, { $set: { approvalInProgress: false } });
-      return res.status(400).json({ success: false, message: "This KYC record has no DigiO KID." });
+      return res.status(400).json({ success: false, message: "Every required director must have a name and email before approval." });
     }
 
-    await digio.manageApproval(kid, "approved");
+    if (record.digio.status !== "approved") await digio.manageApproval(kid, "approved");
+    for (const director of record.directors || []) {
+      await requestDirectorKyc(record, director);
+      await record.save();
+    }
+    const nextStatus = record.directors && record.directors.length ? "director_kyc_pending" : "approved";
     const approved = await KycForm.findOneAndUpdate(
       { _id: record._id, status: { $in: ["pending", null] } },
-      { $set: { status: "approved", approvedBy: req.adminId, approvedAt: new Date(), approvalInProgress: false, "digio.status": "approved", "digio.lastAction": "approval", "digio.lastSyncedAt": new Date() } },
+      { $set: { status: nextStatus, approvedBy: req.adminId, approvedAt: new Date(), approvalInProgress: false, "digio.status": "approved", "digio.lastAction": "approval", "digio.lastSyncedAt": new Date(), directors: record.directors } },
       { new: true }
     ).lean();
     return res.json({ success: true, data: { id: approved._id, status: approved.status } });
   } catch (error) {
     if (record) await KycForm.updateOne({ _id: record._id }, { $set: { approvalInProgress: false } });
-    console.error(`Admin KYC approval error (${req.params.id}):`, error);
+    console.error(`Admin KYC approval error (${req.params.id}):`, error.code || error.message);
     if (error.code === "DIGIO_NOT_CONFIGURED") return res.status(503).json({ success: false, message: error.message, code: error.code });
-    if (error.code === "DIGIO_PROVIDER_ERROR") return res.status(502).json({ success: false, message: error.message, code: error.code });
+    if (error.code === "DIGIO_INVALID_REQUEST") return res.status(400).json({ success: false, message: error.message, code: error.code });
+    if (error.code === "DIGIO_PROVIDER_ERROR") return res.status(502).json({ success: false, message: error.providerData?.message || error.message, code: error.code, providerCode: error.providerData?.code });
     return res.status(500).json({ success: false, message: "Unable to approve KYC record." });
+  }
+});
+
+router.post("/:id/directors/:directorId/sync", requireAdmin, async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id) || !mongoose.Types.ObjectId.isValid(req.params.directorId)) {
+      return res.status(400).json({ success: false, message: "Invalid KYC or director ID." });
+    }
+    const record = await KycForm.findById(req.params.id);
+    if (!record) return res.status(404).json({ success: false, message: "KYC record not found." });
+    const director = record.directors.id(req.params.directorId);
+    const kid = director && director.digio && director.digio.kid;
+    if (!director || !kid) return res.status(400).json({ success: false, message: "Director has no DigiO KID." });
+
+    const response = await digio.getRequestDetails(kid);
+    const providerStatus = String(digio.extractStatus(response.data) || "").toLowerCase();
+    director.digio.lastAction = "details";
+    director.digio.lastSyncedAt = new Date();
+    if (["completed", "success", "successful", "approved"].includes(providerStatus)) {
+      director.status = "completed";
+      director.digio.status = providerStatus;
+      director.completedAt = director.completedAt || new Date();
+    }
+    if (record.directors.length && record.directors.every((item) => item.status === "completed")) {
+      record.status = "agreement_pending";
+    }
+    await record.save();
+    return res.json({ success: true, data: { directorId: director._id, status: director.status, providerStatus } });
+  } catch (error) {
+    console.error(`Director KYC sync error (${req.params.id}):`, error.message);
+    if (error.code && error.code.startsWith("DIGIO_")) return res.status(error.code === "DIGIO_PROVIDER_ERROR" ? 502 : 503).json({ success: false, message: error.message, code: error.code });
+    return res.status(500).json({ success: false, message: "Unable to sync director KYC." });
+  }
+});
+
+router.post("/:id/agreement", requireAdmin, async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid KYC ID." });
+    }
+    const record = await KycForm.findById(req.params.id);
+    if (!record) return res.status(404).json({ success: false, message: "KYC record not found." });
+    if (record.status !== "agreement_pending") {
+      return res.status(409).json({ success: false, message: "Agreement signing is available after every director KYC is completed." });
+    }
+    if (record.agreement && record.agreement.providerRequestId) {
+      return res.status(409).json({ success: false, message: "An agreement signing request already exists for this application." });
+    }
+
+    const signerEmail = String(req.body.email || record.authSignatoryEmail || record.email || "").trim().toLowerCase();
+    const signerName = String(req.body.name || record.authSignatoryName || record.entityName || "").trim();
+    if (!signerEmail || !signerName) return res.status(400).json({ success: false, message: "An agreement signer name and email are required." });
+
+    const pdfBuffer = await generateKycPdf(record);
+    const signCoordinates = req.body.sign_coordinates || {
+      [signerEmail]: {
+        "1": [{ llx: 433, lly: 80, urx: 545, ury: 115 }],
+      },
+    };
+    const payload = {
+      signers: [{ identifier: signerEmail, name: signerName, sign_type: "aadhaar", reason: "KYC agreement signing" }],
+      expire_in_days: Number(req.body.expire_in_days) || 10,
+      display_on_page: "Custom",
+      notify_signers: true,
+      send_sign_link: true,
+      file_name: `KYC_${String(record.entityName || record._id).replace(/[^a-z0-9_-]/gi, "_")}.pdf`,
+      file_data: pdfBuffer.toString("base64"),
+      sign_coordinates: signCoordinates,
+    };
+    const providerResponse = await digio.createSigningRequest(payload);
+    const identifiers = digio.extractIdentifiers(providerResponse.data);
+    const providerData = providerResponse.data && typeof providerResponse.data === "object" ? providerResponse.data : {};
+    const providerRequestId = identifiers.requestId || identifiers.rid || identifiers.kid || providerData.document_id;
+    if (!providerRequestId) {
+      const error = new Error("DigiSign response did not contain a request identifier.");
+      error.code = "DIGIO_INVALID_RESPONSE";
+      throw error;
+    }
+    record.agreement = {
+      status: "sent",
+      providerRequestId,
+      documentId: providerData.document_id,
+      signingUrl: identifiers.accessLink,
+      signers: [{ name: signerName, email: signerEmail, status: "pending" }],
+      lastAction: "create",
+      lastSyncedAt: new Date(),
+    };
+    record.status = "agreement_sent";
+    await record.save();
+    return res.status(201).json({ success: true, data: { id: record._id, providerRequestId, signingUrl: identifiers.accessLink } });
+  } catch (error) {
+    console.error(`DigiSign agreement error (${req.params.id}):`, error.code || error.message);
+    if (error.code === "DIGISIGN_NOT_CONFIGURED") return res.status(503).json({ success: false, message: error.message, code: error.code });
+    if (error.code === "DIGIO_PROVIDER_ERROR" || error.code === "DIGIO_INVALID_RESPONSE") return res.status(502).json({ success: false, message: error.message, code: error.code });
+    return res.status(500).json({ success: false, message: "Unable to create agreement signing request." });
   }
 });
 

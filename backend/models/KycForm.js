@@ -38,9 +38,49 @@ const digioSchema = new mongoose.Schema(
     kid: String,
     rid: String,
     accessToken: { type: String, select: false },
+    accessLink: String,
     status: String,
     lastAction: String,
     lastSyncedAt: Date,
+  },
+  { _id: false }
+);
+
+const directorSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, trim: true, lowercase: true },
+    designation: String,
+    din: String,
+    digio: { type: digioSchema, default: undefined },
+    status: { type: String, enum: ["pending", "requested", "completed", "rejected"], default: "pending" },
+    completedAt: Date,
+    rejectionReason: String,
+  },
+  { _id: true }
+);
+
+const agreementSignerSchema = new mongoose.Schema(
+  {
+    name: String,
+    email: String,
+    providerSignerId: String,
+    status: { type: String, enum: ["pending", "signed", "rejected"], default: "pending" },
+    signedAt: Date,
+  },
+  { _id: false }
+);
+
+const agreementSchema = new mongoose.Schema(
+  {
+    status: { type: String, enum: ["pending", "sent", "signed"], default: "pending" },
+    providerRequestId: String,
+    documentId: String,
+    signingUrl: String,
+    signers: [agreementSignerSchema],
+    lastAction: String,
+    lastSyncedAt: Date,
+    error: String,
   },
   { _id: false }
 );
@@ -146,8 +186,14 @@ const kycFormSchema = new mongoose.Schema(
 
     // DigiO identifiers are server-side metadata; accessToken is excluded from normal queries.
     digio: { type: digioSchema, default: undefined },
+    directors: [directorSchema],
+    agreement: { type: agreementSchema, default: undefined },
 
-    status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected", "director_kyc_pending", "director_kyc_completed", "agreement_pending", "agreement_sent", "agreement_signed", "completed"],
+      default: "pending",
+    },
     approvalInProgress: { type: Boolean, default: false, select: false },
     rejectionReason: { type: String, trim: true },
     approvedBy: { type: String, trim: true },

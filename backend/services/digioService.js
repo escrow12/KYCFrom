@@ -16,6 +16,20 @@ function getConfig() {
   return { baseUrl, clientId, clientSecret };
 }
 
+function getSignConfig() {
+  const baseUrl = String(process.env.DIGISIGN_BASE_URL || "").trim().replace(/\/$/, "");
+  const clientId = String(process.env.DIGISIGN_CLIENT_ID || "").trim();
+  const clientSecret = String(process.env.DIGISIGN_CLIENT_SECRET || "").trim();
+
+  if (!baseUrl || !clientId || !clientSecret) {
+    const error = new Error("DigiSign is not configured. Set DIGISIGN_BASE_URL, DIGISIGN_CLIENT_ID, and DIGISIGN_CLIENT_SECRET.");
+    error.code = "DIGISIGN_NOT_CONFIGURED";
+    throw error;
+  }
+
+  return { baseUrl, clientId, clientSecret };
+}
+
 function getTokenConfig() {
   const config = getConfig();
   return {
@@ -91,8 +105,20 @@ function assertSuccessful(response) {
     error.code = "DIGIO_PROVIDER_ERROR";
     error.statusCode = response.statusCode;
     error.providerData = response.data;
+    console.error("DigiO provider error", {
+      statusCode: response.statusCode,
+      data: redactSecrets(response.data),
+    });
     throw error;
   }
+  return response;
+}
+
+function logProviderResponse(operation, response) {
+  console.info(`DigiO ${operation} response`, {
+    statusCode: response.statusCode,
+    ...safeResponseSummary(response.data),
+  });
   return response;
 }
 
@@ -125,11 +151,32 @@ function extractIdentifiers(data) {
     kid: findValue(data, ["kid", "kyc_id", "kycid"]),
     rid: findValue(data, ["rid", "response_id", "responseid"]),
     accessToken: findValue(data, ["access_token", "accesstoken"]),
+    accessLink: findValue(data, ["access_url", "accessurl", "kyc_url", "kycurl", "redirect_url", "redirecturl", "signing_url", "signingurl", "link"]),
+  };
+}
+
+function extractStatus(data) {
+  return findValue(data, ["status", "request_status", "kyc_status"]);
+}
+
+function safeResponseSummary(data) {
+  const identifiers = extractIdentifiers(data);
+  return {
+    requestId: identifiers.requestId,
+    kid: identifiers.kid,
+    rid: identifiers.rid,
+    status: extractStatus(data),
+    hasAccessLink: Boolean(identifiers.accessLink),
   };
 }
 
 async function createRequest(payload) {
-  return assertSuccessful(await request("POST", "/client/kyc/v2/request/with_template", payload));
+  return logProviderResponse("KYC request", assertSuccessful(await request("POST", "/client/kyc/v2/request/with_template", payload)));
+}
+
+async function createSigningRequest(payload) {
+  const response = assertSuccessful(await request("POST", "/v2/client/document/uploadpdf", payload, undefined, getSignConfig()));
+  return logProviderResponse("DigiSign request", response);
 }
 
 async function getRequestDetails(kid) {
@@ -146,7 +193,7 @@ async function manageApproval(kid, status) {
     error.code = "DIGIO_REJECTION_UNCONFIRMED";
     throw error;
   }
-  return assertSuccessful(await request("POST", `/client/kyc/v2/request/${encodeURIComponent(kid)}/manage_approval`, { status }));
+  return logProviderResponse("approval", assertSuccessful(await request("POST", `/client/kyc/v2/request/${encodeURIComponent(kid)}/manage_approval`, { status })));
 }
 
 async function reattempt(requestId, payload) {
@@ -160,11 +207,14 @@ async function regenerateToken(entityId) {
 
 module.exports = {
   createRequest,
+  createSigningRequest,
   getRequestDetails,
   downloadMedia,
   manageApproval,
   reattempt,
   regenerateToken,
   extractIdentifiers,
+  extractStatus,
+  safeResponseSummary,
   redactSecrets,
 };
