@@ -7,7 +7,7 @@ async function requireAdmin(req, res, next) {
   if (sessionToken) {
     try {
       const claims = auth.verifyToken(sessionToken);
-      const admin = claims.authMode === "env" ? auth.getTemporaryAdmin(claims.sub) : await auth.getActiveAdmin(claims.sub);
+      const admin = await auth.getActiveAdmin(claims.sub);
       if (claims.role === "admin" && admin && admin.role === "admin") {
         req.adminId = String(admin._id || claims.sub);
         req.adminRole = admin.role;
