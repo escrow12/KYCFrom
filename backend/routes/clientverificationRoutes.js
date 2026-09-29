@@ -2,9 +2,11 @@ const express = require("express");
 const mongoose = require("mongoose");
 const ClientVerification = require("../models/clientverification");
 const generatePdf = require("../utils/clientverificationPdf");
+const requireAdmin = require("../middleware/adminAuth");
 
 const router = express.Router();
 
+// Client verification submissions remain public; all record-reading endpoints are admin-only.
 function isValidId(id) {
   return mongoose.Types.ObjectId.isValid(id);
 }
@@ -19,7 +21,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/", async (req, res) => {
+router.get("/", requireAdmin, async (req, res) => {
   try {
     const forms = await ClientVerification.find().sort({ createdAt: -1 });
     res.json({ success: true, data: forms });
@@ -29,7 +31,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireAdmin, async (req, res) => {
   try {
     if (!isValidId(req.params.id)) {
       return res.status(400).json({ success: false, message: "Invalid form ID" });
@@ -47,7 +49,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.get("/:id/pdf", async (req, res) => {
+router.get("/:id/pdf", requireAdmin, async (req, res) => {
   try {
     if (!isValidId(req.params.id)) {
       return res.status(400).send("Invalid form ID");

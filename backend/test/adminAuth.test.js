@@ -98,3 +98,17 @@ test("existing KYC and DigiO route modules still load", () => {
   assert.ok(require("../routes/kycRoutes"));
   assert.ok(require("../routes/digioRoutes"));
 });
+
+test("client verification reads require admin auth while public submissions remain available", () => {
+  const routes = require("../routes/clientverificationRoutes");
+  const getRoutes = routes.stack.filter((layer) => layer.route && layer.route.methods.get);
+  const postRoutes = routes.stack.filter((layer) => layer.route && layer.route.methods.post);
+  const requireAdminMiddleware = require("../middleware/adminAuth");
+
+  assert.equal(getRoutes.length, 3);
+  for (const layer of getRoutes) {
+    assert.equal(layer.route.stack[0].handle, requireAdminMiddleware);
+  }
+  assert.equal(postRoutes.length, 1);
+  assert.notEqual(postRoutes[0].route.stack[0].handle, requireAdminMiddleware);
+});

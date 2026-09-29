@@ -8,6 +8,8 @@ const clientVerificationRoutes = require("./routes/clientverificationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const digioRoutes = require("./routes/digioRoutes");
 const adminAuthRoutes = require("./routes/adminAuthRoutes");
+const adminAuthService =
+  require("./services/adminAuthService");
 
 const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI;
 
@@ -57,11 +59,23 @@ function startServer(port) {
 
 mongoose
   .connect(mongoUri)
-  .then(() => {
-    console.log("Connected to MongoDB Atlas");
+  .then(async () => {
+
+    console.log(
+      "Connected to MongoDB Atlas"
+    );
+
+    // VERY IMPORTANT
+    await adminAuthService.ensureAdmin();
+
     startServer(PORT);
   })
   .catch((err) => {
-    console.error("MongoDB connection error:", err.message);
+
+    console.error(
+      "MongoDB connection error:",
+      err.message
+    );
+
     process.exit(1);
   });

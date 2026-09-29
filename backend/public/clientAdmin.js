@@ -105,6 +105,10 @@ async function loadRecords() {
   listStatus.textContent = "Loading client verification records...";
   try {
     const response = await fetch("/api/client-verification");
+    if (response.status === 401) {
+      window.location.replace("/adminlogin.html");
+      return;
+    }
     const result = await response.json();
     if (!response.ok || !result.success) throw new Error(result.message || "Unable to load records");
     records = result.data || [];
@@ -127,4 +131,8 @@ recordsBody.addEventListener("click", (event) => {
 searchInput.addEventListener("input", renderTable);
 sortSelect.addEventListener("change", renderTable);
 document.getElementById("closeDialog").addEventListener("click", () => detailDialog.close());
+document.getElementById("logoutButton").addEventListener("click", async () => {
+  await fetch("/api/admin/auth/logout", { method: "POST", credentials: "same-origin" });
+  window.location.replace("/adminlogin.html");
+});
 loadRecords();

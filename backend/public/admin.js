@@ -1,9 +1,3 @@
-const loginPanel = document.getElementById("loginPanel");
-const adminApp = document.getElementById("adminApp");
-const loginForm = document.getElementById("loginForm");
-const loginIdentifier = document.getElementById("loginIdentifier");
-const loginPassword = document.getElementById("loginPassword");
-const loginStatus = document.getElementById("loginStatus");
 const logoutButton = document.getElementById("logoutButton");
 const recordsBody = document.getElementById("recordsBody");
 const searchInput = document.getElementById("searchInput");
@@ -24,13 +18,6 @@ const toast = document.getElementById("toast");
 let currentPage = 1;
 let searchTimer;
 let pendingRejectId = null;
-
-function setAuthState(authenticated, message = "") {
-  loginPanel.hidden = authenticated;
-  adminApp.hidden = !authenticated;
-  loginStatus.textContent = message;
-  if (!authenticated) loginIdentifier.focus();
-}
 
 const fields = {
   "SECTION A": [
@@ -97,9 +84,8 @@ async function loadRecords() {
   const params = new URLSearchParams({ page: currentPage, limit: 25, search: searchInput.value.trim(), sort: sortSelect.value });
   try {
     const response = await fetch(`/api/admin/kyc?${params}`); const result = await response.json();
-    if (response.status === 401) { setAuthState(false, "Please sign in to continue."); return; }
+    if (response.status === 401) { window.location.replace("/adminlogin.html"); return; }
     if (!response.ok || !result.success) throw new Error(result.message || "Unable to load records");
-    setAuthState(true);
     renderTable(result.data); renderPagination(result.pagination);
     document.getElementById("totalCount").textContent = result.summary.total; document.getElementById("todayCount").textContent = result.summary.today; document.getElementById("weekCount").textContent = result.summary.week; document.getElementById("monthCount").textContent = result.summary.month;
     listStatus.textContent = `${result.pagination.total} submission${result.pagination.total === 1 ? "" : "s"}`;
@@ -145,26 +131,8 @@ closeDialog.addEventListener("click", () => detailDialog.close());
 closeRejectDialog.addEventListener("click", () => rejectDialog.close());
 cancelReject.addEventListener("click", () => rejectDialog.close());
 detailDialog.addEventListener("click", (event) => { if (event.target === detailDialog) detailDialog.close(); });
-loginForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  loginStatus.textContent = "Signing in...";
-  try {
-    const response = await fetch("/api/admin/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
-      body: JSON.stringify({ identifier: loginIdentifier.value.trim(), password: loginPassword.value }),
-    });
-    const result = await response.json();
-    if (!response.ok || !result.success) throw new Error(result.message || "Unable to sign in.");
-    loginPassword.value = "";
-    await loadRecords();
-  } catch (error) {
-    loginStatus.textContent = error.message;
-  }
-});
 logoutButton.addEventListener("click", async () => {
   await fetch("/api/admin/auth/logout", { method: "POST", credentials: "same-origin" });
-  setAuthState(false, "You have been signed out.");
+  window.location.replace("/adminlogin.html");
 });
 loadRecords();
