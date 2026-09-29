@@ -5,12 +5,14 @@ const TOKEN_TTL_SECONDS = 60 * 60 * 8;
 
 function configuration() {
   const secret = String(process.env.ADMIN_AUTH_SECRET || "").trim();
+  const temporaryUsername = String(process.env.ADMIN_USERNAME || "").trim().toLowerCase();
+  const temporaryPassword = String(process.env.ADMIN_PASSWORD || "");
   if (!secret) {
     const error = new Error("Admin authentication is not configured. Set ADMIN_AUTH_SECRET.");
     error.code = "ADMIN_AUTH_NOT_CONFIGURED";
     throw error;
   }
-  return { secret };
+  return { secret, temporaryUsername, temporaryPassword };
 }
 
 function safeEqual(left, right) {
@@ -40,6 +42,14 @@ function verifyPassword(password, passwordHash) {
 async function authenticate(identifier, password) {
   const config = configuration();
   const suppliedIdentifier = String(identifier || "").trim().toLowerCase();
+  if (config.temporaryUsername && config.temporaryPassword) {
+    if (!safeEqual(suppliedIdentifier, config.temporaryUsername) || !safeEqual(password, config.temporaryPassword)) {
+      const error = new Error("Invalid admin credentials.");
+      error.code = "ADMIN_INVALID_CREDENTIALS";
+      throw error;
+    }
+    return createToken(config.temporaryUsername, "admin", config.secret, "env");
+  }
   const admin = await Admin.findOne({
     $or: [{ username: suppliedIdentifier }, { email: suppliedIdentifier }],
   }).select("+passwordHash");
@@ -49,11 +59,11 @@ async function authenticate(identifier, password) {
     error.code = "ADMIN_INVALID_CREDENTIALS";
     throw error;
   }
-  return createToken(String(admin._id), admin.role, config.secret);
+  return createToken(String(admin._id), admin.role, config.secret, "mongo");
 }
 
-function createToken(subject, role, secret) {
-  const payload = Buffer.from(JSON.stringify({ sub: subject, role, exp: Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS })).toString("base64url");
+function createToken(subject, role, secret, authMode = "mongo") {
+  const payload = Buffer.from(JSON.stringify({ sub: subject, role, authMode, exp: Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS })).toString("base64url");
   const signature = crypto.createHmac("sha256", secret).update(payload).digest("base64url");
   return `${payload}.${signature}`;
 }
@@ -73,6 +83,13 @@ async function getActiveAdmin(adminId) {
   return Admin.findOne({ _id: adminId, active: true, status: "active" }).select("username email role active status").lean();
 }
 
+function getTemporaryAdmin(username) {
+  const config = configuration();
+  return config.temporaryUsername && config.temporaryPassword && safeEqual(username, config.temporaryUsername)
+    ? { _id: config.temporaryUsername, username: config.temporaryUsername, email: config.temporaryUsername, role: "admin", active: true, status: "active" }
+    : null;
+}
+
 function getCookie(req, name) {
   const cookies = String(req.headers.cookie || "").split(";");
   const entry = cookies.find((cookie) => cookie.trim().startsWith(`${name}=`));
@@ -84,4 +101,4 @@ function sessionCookie(token) {
   return `admin_session=${encodeURIComponent(token)}; Max-Age=${TOKEN_TTL_SECONDS}; Path=/; HttpOnly; SameSite=Strict${secure}`;
 }
 
-module.exports = { authenticate, verifyToken, getActiveAdmin, createToken, hashPassword, verifyPassword, getCookie, sessionCookie, TOKEN_TTL_SECONDS };
+module.exports = { authenticate, verifyToken, getActiveAdmin, getTemporaryAdmin, createToken, hashPassword, verifyPassword, getCookie, sessionCookie, TOKEN_TTL_SECONDS };

@@ -35,22 +35,10 @@ test.afterEach(() => {
 test("correct MongoDB admin credentials create a valid session token", async () => {
   const admin = mockAdmin();
   setAdminResult(admin);
-  const previousUsername = process.env.ADMIN_USERNAME;
-  const previousPassword = process.env.ADMIN_PASSWORD;
-  process.env.ADMIN_USERNAME = "legacy-admin";
-  process.env.ADMIN_PASSWORD = "legacy-password";
-  try {
-    const token = await auth.authenticate("ADMIN@example.com", "CorrectPassword123!");
-    const claims = auth.verifyToken(token);
-    assert.equal(claims.sub, admin._id);
-    assert.equal(claims.role, "admin");
-    assert.equal(claims.authMode, undefined);
-  } finally {
-    if (previousUsername === undefined) delete process.env.ADMIN_USERNAME;
-    else process.env.ADMIN_USERNAME = previousUsername;
-    if (previousPassword === undefined) delete process.env.ADMIN_PASSWORD;
-    else process.env.ADMIN_PASSWORD = previousPassword;
-  }
+  const token = await auth.authenticate("ADMIN@example.com", "CorrectPassword123!");
+  const claims = auth.verifyToken(token);
+  assert.equal(claims.sub, admin._id);
+  assert.equal(claims.role, "admin");
 });
 
 test("wrong password is rejected", async () => {

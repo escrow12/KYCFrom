@@ -45,11 +45,16 @@ async function getRecord(req, res) {
   return record;
 }
 
+function sanitizeReferenceId(ref) {
+  if (!ref || typeof ref !== "string") return "";
+  return ref.replace(/[^a-zA-Z0-9_-]/g, "-");
+}
+
 function buildRequestPayload(record, body) {
   const payload = {
-    customer_identifier: body.customer_identifier || record.email || record.authSignatoryEmail,
-    customer_name: body.customer_name || record.entityName,
-    reference_id: body.reference_id || String(record._id),
+    customer_identifier: String(body.customer_identifier || record.email || record.authSignatoryEmail || "").trim().toLowerCase(),
+    customer_name: String(body.customer_name || record.entityName || "").trim(),
+    reference_id: body.reference_id && String(body.reference_id).trim().length === 15 ? sanitizeReferenceId(body.reference_id) : digio.generate15CharReferenceId(),
     template_name: body.template_name || process.env.DIGIO_TEMPLATE_NAME,
     notify_customer: body.notify_customer === undefined ? true : body.notify_customer,
     generate_access_token: body.generate_access_token === undefined ? true : body.generate_access_token,
@@ -107,8 +112,11 @@ router.post("/:id/details", requireAdmin, async (req, res) => {
   try {
     const record = await getRecord(req, res);
     if (!record) return;
-    const kid = req.body.kid || getIdentifier(record, "kid");
-    if (!kid) return res.status(400).json({ success: false, message: "A DigiO KID is required." });
+    const director = req.body.director_id && record.directors ? record.directors.id(req.body.director_id) : null;
+    const kid = req.body.kid || (director && director.digio && director.digio.kid) || getIdentifier(record, "kid");
+    if (!kid) {
+      return res.status(400).json({ success: false, message: "Director DigiO KID is missing. DigiO KYC request was not successfully registered." });
+    }
     const response = await digio.getRequestDetails(kid);
     await saveProviderIdentifiers(record, "details", response.data);
     res.json({ success: true, data: digio.redactSecrets(response.data) });
@@ -122,8 +130,9 @@ router.get("/:id/download", requireAdmin, async (req, res) => {
   try {
     const record = await getRecord(req, res);
     if (!record) return;
-    const rid = req.query.rid || getIdentifier(record, "rid");
-    const docType = String(req.query.doc_type || "").trim();
+    const director = req.query.director_id && record.directors ? record.directors.id(req.query.director_id) : null;
+    const rid = req.query.rid || (director && director.digio && director.digio.rid) || getIdentifier(record, "rid");
+    const docType = String(req.query.doc_type || "AADHAAR").trim();
     const xml = String(req.query.xml || "true").toLowerCase() === "true";
     if (!rid || !docType) return res.status(400).json({ success: false, message: "DigiO RID and doc_type are required." });
     const response = await digio.downloadMedia(rid, docType, xml);
@@ -139,10 +148,14 @@ router.post("/:id/approval", requireAdmin, async (req, res) => {
   try {
     const record = await getRecord(req, res);
     if (!record) return;
-    const kid = req.body.kid || getIdentifier(record, "kid");
+    const director = req.body.director_id && record.directors ? record.directors.id(req.body.director_id) : null;
+    const kid = req.body.kid || (director && director.digio && director.digio.kid) || getIdentifier(record, "kid");
     const status = req.body.status;
-    if (!kid || status !== "approved") {
-      return res.status(400).json({ success: false, message: "DigiO KID and status approved are required." });
+    if (!kid) {
+      return res.status(400).json({ success: false, message: "Director DigiO KID is missing. DigiO KYC request was not successfully registered." });
+    }
+    if (status !== "approved") {
+      return res.status(400).json({ success: false, message: "Status must be approved." });
     }
     const response = await digio.manageApproval(kid, status);
     await saveProviderIdentifiers(record, "approval", response.data, status);
@@ -157,11 +170,12 @@ router.post("/:id/reattempt", requireAdmin, async (req, res) => {
   try {
     const record = await getRecord(req, res);
     if (!record) return;
-    const requestId = req.body.request_id || getIdentifier(record, "requestId");
+    const director = req.body.director_id && record.directors ? record.directors.id(req.body.director_id) : null;
+    const requestId = req.body.request_id || (director && director.digio && (director.digio.requestId || director.digio.kid)) || getIdentifier(record, "requestId") || getIdentifier(record, "kid");
     const payload = {
       action_ids: req.body.action_ids,
       reason: req.body.reason,
-      notify_customer: req.body.notify_customer,
+      notify_customer: req.body.notify_customer === undefined ? true : req.body.notify_customer,
     };
     if (!requestId || !Array.isArray(payload.action_ids) || !payload.action_ids.length || !payload.reason) {
       return res.status(400).json({ success: false, message: "request_id, action_ids, and reason are required." });
@@ -179,7 +193,8 @@ router.post("/:id/token", requireAdmin, async (req, res) => {
   try {
     const record = await getRecord(req, res);
     if (!record) return;
-    const entityId = req.body.entity_id || getIdentifier(record, "requestId") || String(record._id);
+    const director = req.body.director_id && record.directors ? record.directors.id(req.body.director_id) : null;
+    const entityId = req.body.entity_id || (director && director.digio && (director.digio.requestId || director.digio.kid)) || getIdentifier(record, "requestId") || getIdentifier(record, "kid") || String(record._id);
     const response = await digio.regenerateToken(entityId);
     await saveProviderIdentifiers(record, "token", response.data, "token_regenerated");
     res.json({ success: true, data: { id: record._id, tokenRegenerated: true } });
@@ -189,4 +204,4 @@ router.post("/:id/token", requireAdmin, async (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = router;

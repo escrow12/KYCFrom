@@ -7,15 +7,26 @@ const crypto = require("crypto");
 
 function normalizeDirectors(body) {
   const source = Array.isArray(body.directors) && body.directors.length ? body.directors : body.beneficialOwners;
-  return (source || [])
+  const directors = (source || [])
     .filter((director) => director && director.name && director.email)
     .map((director) => ({
       name: String(director.name).trim(),
       email: String(director.email).trim().toLowerCase(),
-      designation: director.designation,
-      din: director.din,
+      designation: director.designation || "Director",
+      din: director.din || "",
       status: "pending",
     }));
+
+  if (directors.length === 0 && (body.authSignatoryEmail || body.email)) {
+    directors.push({
+      name: String(body.authSignatoryName || body.entityName || "Authorized Signatory").trim(),
+      email: String(body.authSignatoryEmail || body.email).trim().toLowerCase(),
+      designation: "Authorized Signatory",
+      din: "",
+      status: "pending",
+    });
+  }
+  return directors;
 }
 
 function referenceId(prefix, id) {
@@ -32,7 +43,7 @@ router.post("/", async (req, res) => {
       const payload = {
         customer_identifier: director?.email || record.email || record.authSignatoryEmail,
         customer_name: director?.name || record.entityName,
-        reference_id: referenceId("kyc", record._id),
+        reference_id: digio.generate15CharReferenceId(),
         template_name: process.env.DIGIO_TEMPLATE_NAME,
         notify_customer: true,
         generate_access_token: true,
@@ -40,20 +51,25 @@ router.post("/", async (req, res) => {
       };
       const providerResponse = await digio.createRequest(payload);
       const identifiers = digio.extractIdentifiers(providerResponse.data);
-      if (!identifiers.kid && !identifiers.requestId) {
-        const error = new Error("DigiO response did not contain a request identifier.");
+      if (!identifiers.kid) {
+        const error = new Error("DigiO response did not contain a valid KID.");
         error.code = "DIGIO_INVALID_RESPONSE";
         throw error;
       }
       record.digio = {
         customerIdentifier: payload.customer_identifier,
-        referenceId: payload.reference_id,
+        referenceId: identifiers.referenceId || payload.reference_id,
         ...identifiers,
         accessLink: identifiers.accessLink,
         status: "requested",
         lastAction: "request",
         lastSyncedAt: new Date(),
       };
+      if (director) {
+        director.digio = { ...record.digio };
+        director.status = "requested";
+      }
+      record.markModified("directors");
       await record.save();
       digioData = { ...identifiers, accessToken: undefined };
     }
@@ -117,6 +133,69 @@ router.get("/:id/pdf", async (req, res) => {
   } catch (err) {
     console.error(`KYC PDF generation error (${req.params.id}):`, err);
     res.status(500).send("Error generating PDF: " + err.message);
+  }
+});
+
+// Webhook for DigiO and DigiSign real-time status updates
+router.post("/webhook", async (req, res) => {
+  try {
+    const payload = req.body || {};
+    console.log("[DIGIO WEBHOOK RECEIVED]:", JSON.stringify(payload));
+    const event = String(payload.event || payload.action || "").toUpperCase();
+    const documentId = payload.document_id || payload.id || payload.payload_id;
+    const kycId = payload.kyc_id || payload.kid || payload.request_id;
+
+    if (documentId) {
+      const record = await KycForm.findOne({
+        $or: [
+          { "agreement.documentId": documentId },
+          { "agreement.providerRequestId": documentId },
+        ],
+      });
+      if (record && record.agreement) {
+        if (event.includes("SIGN") || event.includes("COMPLETE") || payload.status === "completed") {
+          record.agreement.status = "signed";
+          record.status = "completed";
+          record.agreement.lastSyncedAt = new Date();
+          if (record.agreement.signers) {
+            record.agreement.signers.forEach((s) => {
+              s.status = "signed";
+              s.signedAt = s.signedAt || new Date();
+            });
+          }
+          await record.save();
+          console.log(`[WEBHOOK] Agreement signed for record ${record._id}. Status set to completed.`);
+        }
+      }
+    }
+
+    if (kycId) {
+      const record = await KycForm.findOne({
+        $or: [
+          { "digio.kid": kycId },
+          { "directors.digio.kid": kycId },
+          { "directors.digio.requestId": kycId },
+        ],
+      });
+      if (record) {
+        const director = (record.directors || []).find((d) => d.digio && (d.digio.kid === kycId || d.digio.requestId === kycId));
+        if (director && (event.includes("APPROV") || event.includes("SUCCESS") || event.includes("COMPLETE") || payload.status === "completed")) {
+          director.status = "completed";
+          director.completedAt = new Date();
+          if (record.directors.every((d) => d.status === "completed")) {
+            record.status = "agreement_pending";
+          }
+          record.markModified("directors");
+          await record.save();
+          console.log(`[WEBHOOK] Director ${director.name} KYC verified for record ${record._id}.`);
+        }
+      }
+    }
+
+    res.json({ success: true, message: "Webhook processed" });
+  } catch (err) {
+    console.error("Webhook processing error:", err.message);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

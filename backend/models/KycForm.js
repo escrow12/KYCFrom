@@ -37,19 +37,23 @@ const digioSchema = new mongoose.Schema(
     requestId: String,
     kid: String,
     rid: String,
+    actionIds: [String],
     accessToken: { type: String, select: false },
     accessLink: String,
     status: String,
     lastAction: String,
+    lastResponseAt: Date,
     lastSyncedAt: Date,
   },
   { _id: false }
 );
 
+
 const directorSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true, lowercase: true },
+    phone: { type: String, trim: true },
     designation: String,
     din: String,
     digio: { type: digioSchema, default: undefined },
