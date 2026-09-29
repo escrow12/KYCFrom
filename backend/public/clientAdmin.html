@@ -6,11 +6,37 @@
   <title>Client Verification Admin</title>
   <link rel="stylesheet" href="clientAdmin.css">
 </head>
+
+<script>
+async function checkAdminLogin() {
+  try {
+    const response = await fetch("/api/admin/auth/check", {
+      method: "GET",
+      credentials: "same-origin",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      window.location.replace("/adminlogin.html");
+      return;
+    }
+
+    console.log("Admin authenticated:", result.admin.email);
+
+  } catch (error) {
+    window.location.replace("/adminlogin.html");
+  }
+}
+
+checkAdminLogin();
+</script>
+
 <body>
   <main class="admin-shell">
     <header class="admin-header">
       <div><p class="eyebrow">Operations</p><h1>Client Verification Admin</h1></div>
-      <a href="/cilentverification.html">Open Client Form</a>
+      <div class="header-actions"><a href="/cilentverification.html">Open Client Form</a><button id="logoutButton" class="secondary" type="button">Sign out</button></div>
     </header>
     <section class="summary-grid">
       <article><span>Total Client Verifications</span><strong id="totalCount">-</strong></article>

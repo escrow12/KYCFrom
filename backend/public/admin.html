@@ -7,21 +7,7 @@
   <link rel="stylesheet" href="admin.css" />
 </head>
 <body>
-  <section id="loginPanel" class="login-panel" aria-labelledby="loginTitle">
-    <div class="login-card">
-      <p class="eyebrow">Restricted access</p>
-      <h1 id="loginTitle">Admin sign in</h1>
-      <form id="loginForm">
-        <label for="loginIdentifier">Email or username</label>
-        <input id="loginIdentifier" name="identifier" type="text" autocomplete="username" required />
-        <label for="loginPassword">Password</label>
-        <input id="loginPassword" name="password" type="password" autocomplete="current-password" required />
-        <button type="submit">Sign in</button>
-        <p id="loginStatus" class="login-status" role="alert"></p>
-      </form>
-    </div>
-  </section>
-  <main id="adminApp" class="admin-shell" hidden>
+  <main class="admin-shell">
     <header class="admin-header">
       <img src="logo.png" alt="Company Logo" class="admin-logo" onerror="this.style.display='none'" />
       <div>
