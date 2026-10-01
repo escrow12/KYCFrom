@@ -307,7 +307,7 @@ async function authenticate(
 async function ensureAdmin() {
   const email =
     String(
-      process.env.ADMIN_EMAIL || ""
+      process.env.ADMIN_EMAIL || process.env.ADMIN_USERNAME || ""
     )
       .trim()
       .toLowerCase();
@@ -317,11 +317,9 @@ async function ensureAdmin() {
       process.env.ADMIN_PASSWORD || ""
     );
 
-
   if (!email || !password) {
-    throw new Error(
-      "ADMIN_EMAIL and ADMIN_PASSWORD are required."
-    );
+    console.warn("[ADMIN WARN] ADMIN_EMAIL / ADMIN_PASSWORD not configured in .env. Skipping default admin initialization.");
+    return null;
   }
 
 

@@ -73,7 +73,7 @@ loginForm.addEventListener(
 
       // Redirect to Client Verification
       window.location.assign(
-        "/clientAdmin.html"
+        "/Admin.html"
       );
 
     } catch (error) {

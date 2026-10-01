@@ -10,12 +10,12 @@ const requireAdmin = require("../middleware/adminAuth");
 const originalFindOne = Admin.findOne;
 const originalGetActiveAdmin = auth.getActiveAdmin;
 
-function mockAdmin(overrides = {}) {
+async function mockAdmin(overrides = {}) {
   return {
     _id: "507f1f77bcf86cd799439011",
     username: "admin@example.com",
     email: "admin@example.com",
-    passwordHash: auth.hashPassword("CorrectPassword123!"),
+    passwordHash: await auth.hashPassword("CorrectPassword123!"),
     role: "admin",
     active: true,
     status: "active",
@@ -24,7 +24,9 @@ function mockAdmin(overrides = {}) {
 }
 
 function setAdminResult(admin) {
-  Admin.findOne = () => ({ select: async () => admin });
+  const mockQuery = Promise.resolve(admin);
+  mockQuery.select = () => mockQuery;
+  Admin.findOne = () => mockQuery;
 }
 
 test.afterEach(() => {
@@ -33,7 +35,7 @@ test.afterEach(() => {
 });
 
 test("correct MongoDB admin credentials create a valid session token", async () => {
-  const admin = mockAdmin();
+  const admin = await mockAdmin();
   setAdminResult(admin);
   const token = await auth.authenticate("ADMIN@example.com", "CorrectPassword123!");
   const claims = auth.verifyToken(token);
@@ -42,7 +44,7 @@ test("correct MongoDB admin credentials create a valid session token", async () 
 });
 
 test("wrong password is rejected", async () => {
-  setAdminResult(mockAdmin());
+  setAdminResult(await mockAdmin());
   await assert.rejects(() => auth.authenticate("admin@example.com", "wrong"), { code: "ADMIN_INVALID_CREDENTIALS" });
 });
 
@@ -52,12 +54,12 @@ test("unknown admin is rejected", async () => {
 });
 
 test("inactive admin is rejected", async () => {
-  setAdminResult(mockAdmin({ active: false, status: "inactive" }));
+  setAdminResult(await mockAdmin({ active: false, status: "inactive" }));
   await assert.rejects(() => auth.authenticate("admin@example.com", "CorrectPassword123!"), { code: "ADMIN_INVALID_CREDENTIALS" });
 });
 
 test("valid admin session reaches protected middleware", async () => {
-  const admin = mockAdmin();
+  const admin = await mockAdmin();
   const token = auth.createToken ? auth.createToken(admin._id, admin.role, process.env.ADMIN_AUTH_SECRET) : await (async () => {
     setAdminResult(admin);
     return auth.authenticate(admin.email, "CorrectPassword123!");
