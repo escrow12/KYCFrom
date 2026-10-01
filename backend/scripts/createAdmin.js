@@ -23,7 +23,7 @@ async function main() {
   const existing = await Admin.findOne({ $or: [{ username }, { email }] }).select("_id");
   if (existing) throw new Error("An admin with this username or email already exists.");
 
-  const admin = await Admin.create({ username, email, passwordHash: hashPassword(password), role: "admin", active: true, status: "active" });
+  const admin = await Admin.create({ username, email, passwordHash: await hashPassword(password), role: "admin", active: true, status: "active" });
   console.log(`Admin created: ${admin._id}`);
 }
 

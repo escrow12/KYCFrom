@@ -113,7 +113,7 @@ function sessionCookie(token) {
     `${COOKIE_NAME}=${token}`,
     "Path=/",
     "HttpOnly",
-    "SameSite=Strict",
+    "SameSite=Lax",
     `Max-Age=${TOKEN_TTL_SECONDS}`,
     secure,
   ]
@@ -394,11 +394,6 @@ async function ensureAdmin() {
   console.log(
     "Email:",
     email
-  );
-
-  console.log(
-    "Password:",
-    password
   );
 
   console.log(
