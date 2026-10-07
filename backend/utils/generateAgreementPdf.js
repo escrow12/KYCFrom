@@ -1,6 +1,7 @@
 const PDFDocument = require("pdfkit");
 const path = require("path");
 const fs = require("fs");
+const agreementConfig = require("../config/agreementConfig");
 
 const LOGO_PATH = path.join(__dirname, "..", "public", "logo.png");
 
@@ -80,33 +81,33 @@ function generateAgreementPdf(record) {
       doc.moveDown(0.5);
       doc.fontSize(9.5).font("Helvetica").fillColor("#000000");
       doc.text(`Agreement No.: ${agrNumber}`, { align: "left" });
-      doc.text("Version: 2.0", { align: "left" });
+      doc.text(`Version: ${agreementConfig.agreementVersion}`, { align: "left" });
       doc.moveDown(0.5);
 
       addParagraph(doc, `This Master Agent / API Partner Onboarding Agreement ("Agreement") is executed on this ${effectiveDate} ("Effective Date").`);
       
       addHeading(doc, "BETWEEN", 3);
-      addParagraph(doc, 'ESCROWIND PRIVATE LIMITED, a company incorporated under the Companies Act, 2013, having its registered office at India (hereinafter referred to as "BBPS AI", which expression shall unless repugnant to the context include its successors, affiliates and permitted assigns);');
+      addParagraph(doc, `${agreementConfig.companyName}, a company incorporated under the Companies Act, 2013, having its registered office at India (hereinafter referred to as "${agreementConfig.brandingTerm}", which expression shall unless repugnant to the context include its successors, affiliates and permitted assigns);`);
 
       addHeading(doc, "AND", 3);
       addParagraph(doc, `${entityName}, a ${entityType} duly organized under the laws of India and having its principal office at ${address} (hereinafter referred to as the "API Partner", which expression shall include its successors and permitted assigns).`);
 
-      addParagraph(doc, 'BBPS AI and the API Partner are individually referred to as a "Party" and collectively as the "Parties".');
+      addParagraph(doc, `${agreementConfig.brandingTerm} and the API Partner are individually referred to as a "Party" and collectively as the "Parties".`);
       if (gstin) addParagraph(doc, `GSTIN of API Partner: ${gstin}`, { bold: true });
 
       addHeading(doc, "RECITALS", 2);
-      addParagraph(doc, 'WHEREAS BBPS AI is engaged in providing onboarding, compliance, technology integration, operational support, consulting, transaction facilitation and related services in connection with the Bharat Bill Payment System ("BBPS"), digital payment ecosystem and related financial technology infrastructure, and has established relationships with various BBPS Operating Units (BBPOUs), technology providers, banking institutions, payment processors, aggregators and ecosystem participants.');
-      addParagraph(doc, 'WHEREAS the API Partner desires to avail onboarding, integration, technology, operational and compliance support services from BBPS AI for participation in the BBPS ecosystem, including but not limited to bill aggregation, payment collection, and related services.');
-      addParagraph(doc, 'WHEREAS BBPS AI has agreed to provide such services on the terms and conditions set forth herein, subject to all applicable laws, regulations, and approvals from NPCI, RBI, and BBPOUs.');
+      addParagraph(doc, `WHEREAS ${agreementConfig.brandingTerm} is engaged in providing onboarding, compliance, technology integration, operational support, consulting, transaction facilitation and related services in connection with the Bharat Bill Payment System ("BBPS"), digital payment ecosystem and related financial technology infrastructure, and has established relationships with various BBPS Operating Units (BBPOUs), technology providers, banking institutions, payment processors, aggregators and ecosystem participants.`);
+      addParagraph(doc, `WHEREAS the API Partner desires to avail onboarding, integration, technology, operational and compliance support services from ${agreementConfig.brandingTerm} for participation in the BBPS ecosystem, including but not limited to bill aggregation, payment collection, and related services.`);
+      addParagraph(doc, `WHEREAS ${agreementConfig.brandingTerm} has agreed to provide such services on the terms and conditions set forth herein, subject to all applicable laws, regulations, and approvals from NPCI, RBI, and BBPOUs.`);
       addParagraph(doc, 'NOW THEREFORE, in consideration of the mutual covenants, promises, representations, warranties, and conditions contained herein, the Parties agree as follows:');
 
       addHeading(doc, "ARTICLE 1: DEFINITIONS AND INTERPRETATION", 2);
       addParagraph(doc, '1.1 Definitions: In this Agreement, unless the context otherwise requires, terms shall have the following meanings: "Affiliate", "Agreement", "AML/CFT", "API", "Applicable Laws" (including PSS Act 2007, IT Act 2000, DPDP Act 2023, PMLA 2002), "BBPS", "BBPOU", "Business Day", "Confidential Information", "Customer Data", "Effective Date", "NPCI", "RBI", "Services", "Term", and "Transaction".');
 
       addHeading(doc, "ARTICLE 2: APPOINTMENT AND SCOPE", 2);
-      addParagraph(doc, "2.1 Appointment: BBPS AI hereby appoints the API Partner as a non-exclusive API partner/agent for participating in the BBPS ecosystem.");
+      addParagraph(doc, `2.1 Appointment: ${agreementConfig.brandingTerm} hereby appoints the API Partner as a non-exclusive API partner/agent for participating in the BBPS ecosystem.`);
       addParagraph(doc, "2.2 Independent Contractor Status: The relationship between the Parties is that of independent contractors.");
-      addParagraph(doc, "2.3 No Authority to Bind: The API Partner shall have no authority to bind or represent BBPS AI unless expressly authorized in writing.");
+      addParagraph(doc, `2.3 No Authority to Bind: The API Partner shall have no authority to bind or represent ${agreementConfig.brandingTerm} unless expressly authorized in writing.`);
 
       addHeading(doc, "ARTICLE 3: BUSINESS DESCRIPTION AND USE CASE", 2);
       addParagraph(doc, `3.1 Business of API Partner: ${entityName} is engaged in digital payment facilitation and bill aggregation services. Website: ${website}.`);
@@ -114,7 +115,7 @@ function generateAgreementPdf(record) {
       addParagraph(doc, "3.3 Prohibited Use Cases: Illegal/prohibited transactions including gambling, betting, cryptocurrency, or money laundering are strictly prohibited.");
 
       addHeading(doc, "ARTICLE 4: SCOPE OF SERVICES", 2);
-      addParagraph(doc, "BBPS AI shall provide Onboarding Services, Technology Services (API integration, sandbox access up to 30 days, UAT assistance), Compliance Services, and Operational Support.");
+      addParagraph(doc, `${agreementConfig.brandingTerm} shall provide Onboarding Services, Technology Services (API integration, sandbox access up to 30 days, UAT assistance), Compliance Services, and Operational Support.`);
 
       addHeading(doc, "ARTICLE 5: REGULATORY COMPLIANCE", 2);
       addParagraph(doc, "The API Partner shall at all times comply with all Applicable Laws including PSS Act, PMLA, DPDP Act, IT Act, and all NPCI/RBI guidelines relating to BBPS.");
@@ -126,7 +127,7 @@ function generateAgreementPdf(record) {
       addParagraph(doc, "The API Partner shall pay all fees per the commercial schedule. Invoices are due within 7 calendar days. Late payments attract interest at 18% p.a. Fees are non-refundable (except Security Deposit).");
 
       addHeading(doc, "ARTICLE 8: CUSTOMER DATA AND PRIVACY", 2);
-      addParagraph(doc, "Customer Data shall be processed only for permitted purposes under DPDP Act 2023. Data breach notifications must be sent to BBPS AI within 24 hours.");
+      addParagraph(doc, `Customer Data shall be processed only for permitted purposes under DPDP Act 2023. Data breach notifications must be sent to ${agreementConfig.brandingTerm} within 24 hours.`);
 
       addHeading(doc, "ARTICLE 9: INFORMATION SECURITY", 2);
       addParagraph(doc, "The API Partner shall maintain TLS 1.2+ encryption in transit, AES-256 at rest, quarterly vulnerability scans, and an incident response plan.");
@@ -135,19 +136,19 @@ function generateAgreementPdf(record) {
       addParagraph(doc, "Real-time transaction monitoring and customer sanctions screening must be maintained. Suspicious transactions may be blocked immediately.");
 
       addHeading(doc, "ARTICLE 11: AUDIT RIGHTS", 2);
-      addParagraph(doc, "BBPS AI may audit the API Partner's operations, systems, and records annually or for cause without prior notice.");
+      addParagraph(doc, `${agreementConfig.brandingTerm} may audit the API Partner's operations, systems, and records annually or for cause without prior notice.`);
 
       addHeading(doc, "ARTICLE 12: INTELLECTUAL PROPERTY", 2);
-      addParagraph(doc, "All IP in BBPS AI platform and APIs remains exclusive property of BBPS AI.");
+      addParagraph(doc, `All IP in ${agreementConfig.brandingTerm} platform and APIs remains exclusive property of ${agreementConfig.brandingTerm}.`);
 
       addHeading(doc, "ARTICLE 13: CONFIDENTIALITY", 2);
       addParagraph(doc, "Confidential Information shall be kept confidential for 10 years post-termination. Trade secrets survive indefinitely.");
 
       addHeading(doc, "ARTICLE 14: NON-CIRCUMVENTION", 2);
-      addParagraph(doc, "API Partner shall not approach BBPS AI introduced parties during Term and for 5 years after termination. Liquidated damages: INR 50,00,000/- per occurrence.");
+      addParagraph(doc, `API Partner shall not approach ${agreementConfig.brandingTerm} introduced parties during Term and for 5 years after termination. Liquidated damages: INR 50,00,000/- per occurrence.`);
 
       addHeading(doc, "ARTICLE 15: NON-SOLICITATION", 2);
-      addParagraph(doc, "API Partner shall not solicit BBPS AI employees or contractors during Term and for 3 years post-termination.");
+      addParagraph(doc, `API Partner shall not solicit ${agreementConfig.brandingTerm} employees or contractors during Term and for 3 years post-termination.`);
 
       addHeading(doc, "ARTICLE 16 - 22: GENERAL COVENANTS & FORCE MAJEURE", 2);
       addParagraph(doc, "Covering Representations & Warranties, Indemnity (unlimited for fraud/breach), Limitation of Liability, Suspension, Term & Termination (30 days notice), and Force Majeure.");
@@ -173,12 +174,7 @@ function generateAgreementPdf(record) {
 
       // SCHEDULE B
       addHeading(doc, "SCHEDULE B: COMMERCIALS AND FEES", 2);
-      const feeTable = [
-        ["Fee Type", "Amount (INR)", "Frequency", "Due Date", "Refundable?"],
-        ["Onboarding & Setup Fee", "50,000", "One-Time", "Immediate", "No"],
-        ["Security Deposit", "1,00,000", "One-Time", "On Signing", "Yes"],
-        ["Annual Support & Maintenance", "25,000", "Annual", "Yearly", "No"],
-      ];
+      const feeTable = agreementConfig.feeSchedule;
       
       let y = doc.y;
       const colX = doc.page.margins.left;
@@ -204,7 +200,7 @@ function generateAgreementPdf(record) {
       // EXECUTION BLOCK
       ensureSpace(doc, 120);
       addHeading(doc, "EXECUTION & SIGNATURES", 2);
-      addParagraph(doc, "For and on behalf of ESCROWIND PRIVATE LIMITED (BBPS AI):", { bold: true });
+      addParagraph(doc, `For and on behalf of ${agreementConfig.companyName} (${agreementConfig.brandingTerm}):`, { bold: true });
       addParagraph(doc, "Authorized Signatory");
       doc.moveDown(0.5);
 

@@ -135,32 +135,26 @@ function addBoRow(data = {}) {
   if (!boTableBody) return;
   const tr = document.createElement("tr");
   tr.innerHTML = `
-    <td><input type="text" class="bo-name" value="${data.name || ""}" /></td>
-    <td><input type="email" class="bo-email" value="${data.email || ""}" /></td>
-    <td><input type="text" class="bo-designation" value="${data.designation || ""}" /></td>
-    <td><input type="text" class="bo-din" value="${data.din || ""}" /></td>
-    <td><input type="text" class="bo-pan" value="${data.panNo || ""}" /></td>
-    <td><input type="text" class="bo-pct" value="${data.percentageHolding || ""}" /></td>
-    <td><button type="button" class="remove-row">X</button></td>
+    <td><input type="text" class="bo-name" value="${data.name || ""}" placeholder="Full Name" /></td>
+    <td><input type="email" class="bo-email" value="${data.email || ""}" placeholder="email@domain.com" /></td>
+    <td><input type="tel" class="bo-phone" value="${data.phone || ""}" placeholder="Mobile No." /></td>
+    <td><button type="button" class="remove-row" style="background:#a9323a;color:#fff;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-weight:bold;">X</button></td>
   `;
   tr.querySelector(".remove-row").addEventListener("click", () => tr.remove());
   boTableBody.appendChild(tr);
 }
 if (addBoRowBtn) addBoRowBtn.addEventListener("click", () => addBoRow());
-if (boTableBody) addBoRow();
+if (boTableBody && boTableBody.children.length === 0) addBoRow();
 
 function collectBeneficialOwners() {
   if (!boTableBody) return [];
   return Array.from(boTableBody.querySelectorAll("tr"))
     .map((tr) => ({
-      name: tr.querySelector(".bo-name").value.trim(),
-      email: tr.querySelector(".bo-email").value.trim().toLowerCase(),
-      designation: tr.querySelector(".bo-designation").value.trim(),
-      din: tr.querySelector(".bo-din").value.trim(),
-      panNo: tr.querySelector(".bo-pan").value.trim(),
-      percentageHolding: tr.querySelector(".bo-pct").value.trim(),
+      name: tr.querySelector(".bo-name") ? tr.querySelector(".bo-name").value.trim() : "",
+      email: tr.querySelector(".bo-email") ? tr.querySelector(".bo-email").value.trim().toLowerCase() : "",
+      phone: tr.querySelector(".bo-phone") ? tr.querySelector(".bo-phone").value.trim() : "",
     }))
-    .filter((row) => row.name); // skip fully empty rows
+    .filter((row) => row.name || row.email); // skip fully empty rows
 }
 
 function collectCheckedDocs() {
@@ -206,9 +200,58 @@ function setStatus(msg, type) {
   statusMsg.className = type || "";
 }
 
+let activeKycId = null;
+
+function autoFillFromUrl() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const kycId = urlParams.get("kycId");
+  const name = urlParams.get("name");
+  const email = urlParams.get("email");
+  const phone = urlParams.get("phone");
+  const entityName = urlParams.get("entityName");
+
+  if (kycId) activeKycId = kycId;
+
+  if (name) {
+    const authNameInput = form.querySelector('input[name="authSignatoryName"]');
+    const clientNameInput = form.querySelector('input[name="clientName"]');
+    if (authNameInput) authNameInput.value = name;
+    if (clientNameInput) clientNameInput.value = name;
+  }
+  if (email) {
+    const emailInput = form.querySelector('input[name="email"]');
+    const authEmailInput = form.querySelector('input[name="authSignatoryEmail"]');
+    if (emailInput) emailInput.value = email;
+    if (authEmailInput) authEmailInput.value = email;
+  }
+  if (phone) {
+    const phoneInput = form.querySelector('input[name="phone"]');
+    const authTelInput = form.querySelector('input[name="authSignatoryTel"]');
+    if (phoneInput) phoneInput.value = phone;
+    if (authTelInput) authTelInput.value = phone;
+  }
+  if (entityName) {
+    const entityInput = form.querySelector('input[name="entityName"]');
+    if (entityInput) entityInput.value = entityName;
+  }
+
+  if (name || email || phone) {
+    if (boTableBody && boTableBody.children.length === 1) {
+      const firstRow = boTableBody.children[0];
+      const nameIn = firstRow.querySelector(".bo-name");
+      const emailIn = firstRow.querySelector(".bo-email");
+      const phoneIn = firstRow.querySelector(".bo-phone");
+      if (nameIn && name) nameIn.value = name;
+      if (emailIn && email) emailIn.value = email;
+      if (phoneIn && phone) phoneIn.value = phone;
+    }
+  }
+}
+autoFillFromUrl();
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
-  setStatus("Submitting...", "");
+  setStatus("Submitting KYC & Uploading Verification Documents...", "");
   downloadBtn.disabled = true;
 
   if (!getGroupValue("entityType")) {
@@ -282,17 +325,33 @@ form.addEventListener("submit", async (e) => {
     gstIfApplicable: !!fd.get("gstIfApplicable"),
   };
 
+  if (activeKycId) {
+    payload._id = activeKycId;
+  }
+
+  const uploadFormData = new FormData();
+  uploadFormData.append("payload", JSON.stringify(payload));
+
+  const aadhaarInput = document.getElementById("aadhaarCardInput");
+  const panInput = document.getElementById("panCardInput");
+
+  if (aadhaarInput && aadhaarInput.files[0]) {
+    uploadFormData.append("aadhaarCard", aadhaarInput.files[0]);
+  }
+  if (panInput && panInput.files[0]) {
+    uploadFormData.append("panCard", panInput.files[0]);
+  }
+
   try {
     const res = await fetch("/api/kyc", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: uploadFormData,
     });
     const result = await res.json();
     if (!res.ok || !result.success) throw new Error(result.message || "Submission failed");
 
     lastSubmittedId = result.id;
-    setStatus("KYC Form Submitted Successfully", "success");
+    setStatus("KYC Form & Documents Submitted Successfully for DigiO Verification!", "success");
     downloadBtn.disabled = false;
     printBtn.disabled = false;
   } catch (err) {

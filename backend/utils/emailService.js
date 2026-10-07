@@ -37,13 +37,14 @@ async function sendApprovalEmail(record) {
   const recipient = getRecipientEmail(record);
   if (!recipient) {
     console.warn(`[EmailService] No recipient email found for KYC record ${record._id}`);
-    return false;
+    return { success: false, error: "No recipient email found on application." };
   }
 
   const transporter = createTransporter();
   if (!transporter) {
-    console.info(`[EmailService] SMTP credentials not set (SMTP_HOST/SMTP_USER). Skipping approval email to ${recipient}`);
-    return false;
+    const errMsg = `SMTP credentials not configured. Skipping approval email to ${recipient}`;
+    console.info(`[EmailService] ${errMsg}`);
+    return { success: false, error: errMsg };
   }
 
   const entityName = record.entityName || "Your Entity";
@@ -82,10 +83,10 @@ async function sendApprovalEmail(record) {
     console.log(`Recipient: ${recipient}`);
     console.log(`Message ID: ${info.messageId}`);
     console.log(`==================================================\n`);
-    return true;
+    return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error(`[EMAIL ERROR] Failed to send approval email to ${recipient}:`, error.message);
-    return false;
+    return { success: false, error: error.message };
   }
 }
 
@@ -96,12 +97,13 @@ async function sendRejectionEmail(record, reason) {
   const recipient = getRecipientEmail(record);
   if (!recipient) {
     console.warn(`[EMAIL WARNING] Cannot send rejection email: No recipient email found for KYC record ${record._id}`);
-    return false;
+    return { success: false, error: "No recipient email found on application." };
   }
 
   const transporter = createTransporter();
   if (!transporter) {
-    return false;
+    const errMsg = `SMTP credentials not configured. Skipping rejection email to ${recipient}`;
+    return { success: false, error: errMsg };
   }
 
   const entityName = record.entityName || "Your Entity";
@@ -140,10 +142,10 @@ async function sendRejectionEmail(record, reason) {
     console.log(`Rejection Reason: ${rejectionReason}`);
     console.log(`Message ID: ${info.messageId}`);
     console.log(`==================================================\n`);
-    return true;
+    return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error(`[EMAIL ERROR] Failed to send rejection email to ${recipient}:`, error.message);
-    return false;
+    return { success: false, error: error.message };
   }
 }
 
@@ -154,11 +156,14 @@ async function sendDirectorKycEmail(director, record) {
   const recipient = String(director.email || "").trim();
   if (!recipient) {
     console.warn(`[EMAIL WARNING] Cannot send director KYC email: No email for director ${director.name}`);
-    return false;
+    return { success: false, error: "Director email address is missing." };
   }
 
   const transporter = createTransporter();
-  if (!transporter) return false;
+  if (!transporter) {
+    const errMsg = `SMTP credentials not configured. Skipping director KYC email to ${recipient}`;
+    return { success: false, error: errMsg };
+  }
 
   const entityName = record.entityName || "Your Entity";
   const directorName = director.name || "Director";
@@ -200,10 +205,10 @@ async function sendDirectorKycEmail(director, record) {
   try {
     const info = await transporter.sendMail(mailOptions);
     console.log(`[EMAIL SUCCESS] Director KYC email sent to ${recipient} (Message ID: ${info.messageId})`);
-    return true;
+    return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error(`[EMAIL ERROR] Failed to send director KYC email to ${recipient}:`, error.message);
-    return false;
+    return { success: false, error: error.message };
   }
 }
 
@@ -212,10 +217,13 @@ async function sendDirectorKycEmail(director, record) {
  */
 async function sendAgreementSigningEmail(signer, record, signingUrl) {
   const recipient = String(signer.email || signer.identifier || "").trim();
-  if (!recipient) return false;
+  if (!recipient) return { success: false, error: "Signer email address is missing." };
 
   const transporter = createTransporter();
-  if (!transporter) return false;
+  if (!transporter) {
+    const errMsg = `SMTP credentials not configured. Skipping agreement signing email to ${recipient}`;
+    return { success: false, error: errMsg };
+  }
 
   const entityName = record.entityName || "Your Entity";
   const signerName = signer.name || "Authorized Signatory";
@@ -253,10 +261,10 @@ async function sendAgreementSigningEmail(signer, record, signingUrl) {
   try {
     const info = await transporter.sendMail(mailOptions);
     console.log(`[EMAIL SUCCESS] Agreement signing email sent to ${recipient} (Message ID: ${info.messageId})`);
-    return true;
+    return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error(`[EMAIL ERROR] Failed to send agreement signing email to ${recipient}:`, error.message);
-    return false;
+    return { success: false, error: error.message };
   }
 }
 
@@ -265,10 +273,13 @@ async function sendAgreementSigningEmail(signer, record, signingUrl) {
  */
 async function sendKycCompletedEmail(record) {
   const recipient = getRecipientEmail(record);
-  if (!recipient) return false;
+  if (!recipient) return { success: false, error: "Recipient email address is missing." };
 
   const transporter = createTransporter();
-  if (!transporter) return false;
+  if (!transporter) {
+    const errMsg = `SMTP credentials not configured. Skipping KYC completed email to ${recipient}`;
+    return { success: false, error: errMsg };
+  }
 
   const entityName = record.entityName || "Your Entity";
 
@@ -298,10 +309,87 @@ async function sendKycCompletedEmail(record) {
   try {
     const info = await transporter.sendMail(mailOptions);
     console.log(`[EMAIL SUCCESS] KYC completed email sent to ${recipient} (Message ID: ${info.messageId})`);
-    return true;
+    return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error(`[EMAIL ERROR] Failed to send KYC completed email to ${recipient}:`, error.message);
-    return false;
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Sends a DigiO branded KYC invitation email to a Director with link to index.html
+ */
+async function sendDigioKycInviteEmail({ name, email, phone, entityName, kycId, baseUrl }) {
+  const recipient = String(email || "").trim();
+  if (!recipient) {
+    console.warn(`[EMAIL WARNING] Cannot send DigiO KYC invite: No email provided.`);
+    return { success: false, error: "Director email address is missing." };
+  }
+
+  const transporter = createTransporter();
+  if (!transporter) {
+    const errMsg = `SMTP credentials not configured. Skipping DigiO KYC invite email to ${recipient}`;
+    return { success: false, error: errMsg };
+  }
+
+  const directorName = name || "Director";
+  const entity = entityName || "Corporate KYC";
+  const hostUrl = baseUrl || process.env.APP_BASE_URL || "http://localhost:5000";
+  const kycLink = `${hostUrl}/index.html?kycId=${encodeURIComponent(kycId || "")}&name=${encodeURIComponent(directorName)}&email=${encodeURIComponent(recipient)}&phone=${encodeURIComponent(phone || "")}`;
+
+  const mailOptions = {
+    from: getFromAddress(),
+    to: recipient,
+    subject: `DigiO KYC Verification Request - ${entity}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 25px; border: 1px solid #dcdcdc; border-radius: 10px; background-color: #ffffff;">
+        <div style="text-align: center; padding-bottom: 20px; border-bottom: 2px solid #0056b3;">
+          <h1 style="color: #0056b3; margin: 0; font-size: 24px;">DigiO KYC Portal</h1>
+          <p style="color: #666; margin: 5px 0 0 0; font-size: 13px;">Secure Identity & Document Verification</p>
+        </div>
+
+        <div style="padding: 20px 0;">
+          <p style="font-size: 16px; color: #333;">Dear <strong>${directorName}</strong>,</p>
+          <p style="font-size: 14px; color: #555; line-height: 1.6;">
+            You have received an official <strong>DigiO KYC Verification Request</strong> for <strong>${entity}</strong>.
+            Please click the button below to fill out your details and upload your mandatory documents (<strong>Aadhaar Card</strong> & <strong>PAN Card</strong>).
+          </p>
+          
+          <div style="background-color: #f0f7ff; padding: 18px; border-left: 5px solid #0056b3; margin: 25px 0; border-radius: 4px;">
+            <p style="margin: 0 0 8px 0; font-weight: bold; color: #0056b3; font-size: 15px;">Verification Summary</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #444;"><strong>Director Name:</strong> ${directorName}</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #444;"><strong>Email:</strong> ${recipient}</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #444;"><strong>Phone:</strong> ${phone || "N/A"}</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #444;"><strong>Required Docs:</strong> Aadhaar Card & PAN Card</p>
+          </div>
+
+          <div style="text-align: center; margin: 35px 0;">
+            <a href="${kycLink}" target="_blank" style="background-color: #0056b3; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 6px rgba(0,86,179,0.2);">
+              Start DigiO KYC Verification →
+            </a>
+          </div>
+
+          <p style="font-size: 12px; color: #777; line-height: 1.5;">
+            Direct Link: <a href="${kycLink}" style="color: #0056b3; word-break: break-all;">${kycLink}</a>
+          </p>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #eeeeee; margin: 25px 0;" />
+        <div style="text-align: center; font-size: 12px; color: #888;">
+          <p style="margin: 3px 0;">Powered by DigiO KYC Compliance Engine</p>
+          <p style="margin: 3px 0;">Escrowind Private Limited — Operational Compliance Team</p>
+        </div>
+      </div>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[EMAIL SUCCESS] DigiO KYC invite email sent to ${recipient} (Message ID: ${info.messageId})`);
+    return { success: true, messageId: info.messageId, kycLink };
+  } catch (error) {
+    console.error(`[EMAIL ERROR] Failed to send DigiO KYC invite email to ${recipient}:`, error.message);
+    return { success: false, error: error.message, kycLink };
   }
 }
 
@@ -311,5 +399,7 @@ module.exports = {
   sendDirectorKycEmail,
   sendAgreementSigningEmail,
   sendKycCompletedEmail,
+  sendDigioKycInviteEmail,
 };
+
 

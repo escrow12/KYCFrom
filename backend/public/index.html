@@ -530,6 +530,36 @@
 
         <h4>D. KYC Details</h4>
 
+        <!-- MANDATORY DOCUMENT UPLOADS (Aadhaar Card & PAN Card) -->
+        <div class="document-upload-box" style="margin-bottom: 25px; padding: 20px; background: #f0f7ff; border: 2px dashed #0056b3; border-radius: 8px;">
+          <h4 style="margin-top: 0; color: #0056b3; font-size: 16px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+            <span>📤</span> Mandatory Document Uploads for DigiO Verification
+          </h4>
+          <p style="font-size: 13px; color: #444; margin-bottom: 15px;">
+            Please upload clear PDF, PNG, or JPG copies of the Director / Authorized Signatory's <strong>Aadhaar Card</strong> and <strong>PAN Card</strong>.
+          </p>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
+            <!-- Aadhaar Card Upload -->
+            <div style="background: #ffffff; padding: 15px; border-radius: 6px; border: 1px solid #cce0ff;">
+              <label for="aadhaarCardInput" style="display: block; font-weight: bold; font-size: 14px; color: #1f3b57; margin-bottom: 6px;">
+                🆔 Aadhaar Card (Front/Back) *
+              </label>
+              <input type="file" id="aadhaarCardInput" name="aadhaarCard" accept=".pdf,.png,.jpg,.jpeg" required style="width: 100%; font-size: 13px;" />
+              <small style="display: block; color: #666; margin-top: 5px;">Supported formats: PDF, PNG, JPG (Max 15MB)</small>
+            </div>
+
+            <!-- PAN Card Upload -->
+            <div style="background: #ffffff; padding: 15px; border-radius: 6px; border: 1px solid #cce0ff;">
+              <label for="panCardInput" style="display: block; font-weight: bold; font-size: 14px; color: #1f3b57; margin-bottom: 6px;">
+                💳 PAN Card *
+              </label>
+              <input type="file" id="panCardInput" name="panCard" accept=".pdf,.png,.jpg,.jpeg" required style="width: 100%; font-size: 13px;" />
+              <small style="display: block; color: #666; margin-top: 5px;">Supported formats: PDF, PNG, JPG (Max 15MB)</small>
+            </div>
+          </div>
+        </div>
+
         <!-- Mandatory documents heading -->
         <div class="kyc-document-heading">
 
@@ -965,14 +995,21 @@
 
       <section class="form-section" aria-labelledby="director-heading">
         <h3 id="director-heading">Required Directors for KYC</h3>
-        <p class="hint">Add every director who must complete individual DigiO KYC.</p>
+        <p class="hint">Add every director who must complete individual DigiO KYC (Name, Email, and Phone Number are required).</p>
         <div class="table-wrap">
           <table id="boTable">
-            <thead><tr><th>Name</th><th>Email</th><th>Designation</th><th>DIN</th><th>% Holding</th><th></th></tr></thead>
+            <thead>
+              <tr>
+                <th>Name *</th>
+                <th>Email *</th>
+                <th>Phone Number *</th>
+                <th>Action</th>
+              </tr>
+            </thead>
             <tbody></tbody>
           </table>
         </div>
-        <button type="button" id="addBoRow">Add Director</button>
+        <button type="button" id="addBoRow" class="btn-secondary" style="margin-top: 12px; display: inline-flex; align-items: center; gap: 6px; font-weight: bold; font-size: 13px; cursor: pointer; padding: 9px 16px; background: #1f3b57; color: #ffffff; border: none; border-radius: 4px;">+ Add Director</button>
       </section>
 
       <!-- Declaration -->

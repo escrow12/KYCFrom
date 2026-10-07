@@ -32,7 +32,6 @@ app.use("/api/kyc", kycRoutes);
 app.use("/api/client-verification", clientVerificationRoutes);
 app.use("/api/admin/auth", adminAuthRoutes);
 app.use("/api/admin/kyc", adminRoutes);
-app.use("/api/kyc", digioRoutes);
 app.use("/api/digio", digioRoutes);
 
 // Fallback to index.html for the root

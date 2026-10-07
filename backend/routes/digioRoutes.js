@@ -204,4 +204,39 @@ router.post("/:id/token", requireAdmin, async (req, res) => {
   }
 });
 
+// =====================================================
+// DIGISIGN AGREEMENT DOCUMENT ENDPOINTS
+// =====================================================
+
+router.get("/document/:documentId/details", requireAdmin, async (req, res) => {
+  try {
+    const response = await digio.getDocumentDetails(req.params.documentId);
+    res.json({ success: true, data: response.data });
+  } catch (error) {
+    console.error("DigiSign document details error:", error);
+    return providerErrorResponse(res, error);
+  }
+});
+
+router.get("/document/:documentId/download", requireAdmin, async (req, res) => {
+  try {
+    const response = await digio.downloadDocument(req.params.documentId);
+    res.set("Content-Type", response.headers["content-type"] || "application/pdf");
+    res.send(response.data);
+  } catch (error) {
+    console.error("DigiSign document download error:", error);
+    return providerErrorResponse(res, error);
+  }
+});
+
+router.post("/document/:documentId/cancel", requireAdmin, async (req, res) => {
+  try {
+    const response = await digio.cancelDocument(req.params.documentId);
+    res.json({ success: true, data: response.data, message: "Agreement request cancelled successfully." });
+  } catch (error) {
+    console.error("DigiSign document cancel error:", error);
+    return providerErrorResponse(res, error);
+  }
+});
+
 module.exports = router;

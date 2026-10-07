@@ -8,19 +8,21 @@ const crypto = require("crypto");
 function normalizeDirectors(body) {
   const source = Array.isArray(body.directors) && body.directors.length ? body.directors : body.beneficialOwners;
   const directors = (source || [])
-    .filter((director) => director && director.name && director.email)
+    .filter((director) => director && director.name && (director.email || director.phone))
     .map((director) => ({
       name: String(director.name).trim(),
-      email: String(director.email).trim().toLowerCase(),
+      email: String(director.email || "").trim().toLowerCase(),
+      phone: String(director.phone || "").trim(),
       designation: director.designation || "Director",
       din: director.din || "",
       status: "pending",
     }));
 
-  if (directors.length === 0 && (body.authSignatoryEmail || body.email)) {
+  if (directors.length === 0 && (body.authSignatoryEmail || body.email || body.phone)) {
     directors.push({
       name: String(body.authSignatoryName || body.entityName || "Authorized Signatory").trim(),
-      email: String(body.authSignatoryEmail || body.email).trim().toLowerCase(),
+      email: String(body.authSignatoryEmail || body.email || "").trim().toLowerCase(),
+      phone: String(body.authSignatoryTel || body.phone || "").trim(),
       designation: "Authorized Signatory",
       din: "",
       status: "pending",
@@ -29,14 +31,94 @@ function normalizeDirectors(body) {
   return directors;
 }
 
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+
+const uploadsDir = path.join(__dirname, "../public/uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
+  },
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 15 * 1024 * 1024 },
+});
+
+const kycUpload = upload.fields([
+  { name: "aadhaarCard", maxCount: 1 },
+  { name: "panCard", maxCount: 1 },
+]);
+
 function referenceId(prefix, id) {
   return `${prefix}-${id}-${crypto.randomBytes(6).toString("hex")}`;
 }
 
-// Create a new KYC form submission
-router.post("/", async (req, res) => {
+// Create or update a KYC form submission (supports multipart/form-data & uploads)
+router.post("/", kycUpload, async (req, res) => {
   try {
-    const record = await KycForm.create({ ...req.body, directors: normalizeDirectors(req.body) });
+    let bodyData = req.body;
+    if (req.body && req.body.payload) {
+      try {
+        bodyData = JSON.parse(req.body.payload);
+      } catch (e) {
+        console.warn("Could not parse req.body.payload JSON, using req.body");
+      }
+    }
+
+    let uploadedDocuments = {};
+    if (req.files) {
+      if (req.files.aadhaarCard && req.files.aadhaarCard[0]) {
+        uploadedDocuments.aadhaarCard = req.files.aadhaarCard[0].filename;
+        uploadedDocuments.aadhaarCardOriginalName = req.files.aadhaarCard[0].originalname;
+      }
+      if (req.files.panCard && req.files.panCard[0]) {
+        uploadedDocuments.panCard = req.files.panCard[0].filename;
+        uploadedDocuments.panCardOriginalName = req.files.panCard[0].originalname;
+      }
+    }
+
+    const targetId = bodyData._id || bodyData.kycId || req.query.kycId;
+    let record;
+
+    const directorsList = normalizeDirectors(bodyData);
+
+    if (targetId && require("mongoose").Types.ObjectId.isValid(targetId)) {
+      record = await KycForm.findById(targetId);
+    }
+
+    if (record) {
+      // Update existing record
+      Object.assign(record, bodyData);
+      record.directors = directorsList.length ? directorsList : record.directors;
+      if (uploadedDocuments.aadhaarCard || uploadedDocuments.panCard) {
+        record.uploadedDocuments = {
+          ...(record.uploadedDocuments ? record.uploadedDocuments.toObject() : {}),
+          ...uploadedDocuments,
+        };
+      }
+      record.applicationStatus = "pending";
+      await record.save();
+    } else {
+      // Create new record
+      record = await KycForm.create({
+        ...bodyData,
+        directors: directorsList,
+        ...(uploadedDocuments.aadhaarCard || uploadedDocuments.panCard ? { uploadedDocuments } : {}),
+      });
+    }
+
     let digioData;
     if (String(process.env.DIGIO_AUTO_REQUEST).toLowerCase() === "true") {
       const director = record.directors[0];
@@ -73,7 +155,7 @@ router.post("/", async (req, res) => {
       await record.save();
       digioData = { ...identifiers, accessToken: undefined };
     }
-    console.log(`KYC application saved: ${record._id}`);
+    console.log(`KYC application saved/updated: ${record._id}`);
     res.status(201).json({ success: true, id: record._id, ...(digioData ? { digio: digioData } : {}) });
   } catch (err) {
     console.error("KYC application save error:", err.code || err.message);
@@ -139,6 +221,21 @@ router.get("/:id/pdf", async (req, res) => {
 // Webhook for DigiO and DigiSign real-time status updates
 router.post("/webhook", async (req, res) => {
   try {
+    const webhookSecret = process.env.WEBHOOK_SECRET || process.env.DIGIO_WEBHOOK_SECRET;
+    if (webhookSecret) {
+      const incomingSecret =
+        req.get("x-webhook-secret") ||
+        req.get("x-digio-token") ||
+        req.get("x-digisign-secret") ||
+        req.get("authorization");
+
+      const cleanIncoming = incomingSecret ? String(incomingSecret).replace(/^Bearer\s+/i, "").trim() : "";
+      if (!cleanIncoming || cleanIncoming !== webhookSecret.trim()) {
+        console.warn("[WEBHOOK UNAUTHORIZED] Webhook request failed secret token validation.");
+        return res.status(401).json({ success: false, message: "Unauthorized webhook request." });
+      }
+    }
+
     const payload = req.body || {};
     console.log("[DIGIO WEBHOOK RECEIVED]:", JSON.stringify(payload));
     const event = String(payload.event || payload.action || "").toUpperCase();
@@ -155,7 +252,7 @@ router.post("/webhook", async (req, res) => {
       if (record && record.agreement) {
         if (event.includes("SIGN") || event.includes("COMPLETE") || payload.status === "completed") {
           record.agreement.status = "signed";
-          record.status = "completed";
+          record.agreementStatus = "signed";
           record.agreement.lastSyncedAt = new Date();
           if (record.agreement.signers) {
             record.agreement.signers.forEach((s) => {
@@ -164,7 +261,7 @@ router.post("/webhook", async (req, res) => {
             });
           }
           await record.save();
-          console.log(`[WEBHOOK] Agreement signed for record ${record._id}. Status set to completed.`);
+          console.log(`[WEBHOOK] Agreement signed for record ${record._id}. Agreement status set to signed.`);
         }
       }
     }
@@ -183,7 +280,9 @@ router.post("/webhook", async (req, res) => {
           director.status = "completed";
           director.completedAt = new Date();
           if (record.directors.every((d) => d.status === "completed")) {
-            record.status = "agreement_pending";
+            record.kycStatus = "completed";
+          } else {
+            record.kycStatus = "in_progress";
           }
           record.markModified("directors");
           await record.save();
