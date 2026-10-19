@@ -85,6 +85,51 @@ function showToast(message, type = "success") {
   }
 }
 
+// Patch Swal.fire so modal alerts/confirm dialogs are never occluded behind HTML5 <dialog> elements in the browser top-layer
+if (window.Swal) {
+  const _origSwalFire = Swal.fire.bind(Swal);
+  Swal.fire = async function (options, ...args) {
+    const isToast = options && typeof options === "object" && options.toast;
+    if (isToast) {
+      return _origSwalFire(options, ...args);
+    }
+
+    // Collect all open native <dialog> elements
+    const openDialogs = Array.from(document.querySelectorAll("dialog[open]")).map((d) => ({
+      dialog: d,
+      id: d.id,
+      scrollTop: d.scrollTop,
+      contentScrollTop: d.querySelector(".detail-content") ? d.querySelector(".detail-content").scrollTop : 0,
+    }));
+
+    // Temporarily close open dialogs so SweetAlert modal in document.body displays unobstructed on top
+    openDialogs.forEach((item) => {
+      try { item.dialog.close(); } catch (e) {}
+    });
+
+    try {
+      const result = await _origSwalFire(options, ...args);
+      // Re-open dialogs that were previously open
+      openDialogs.forEach((item) => {
+        // If it's rejectDialog and user confirmed, keep rejectDialog closed
+        if (item.id === "rejectDialog" && result && result.isConfirmed) return;
+        try {
+          item.dialog.showModal();
+          item.dialog.scrollTop = item.scrollTop;
+          const content = item.dialog.querySelector(".detail-content");
+          if (content) content.scrollTop = item.contentScrollTop;
+        } catch (e) {}
+      });
+      return result;
+    } catch (err) {
+      openDialogs.forEach((item) => {
+        try { item.dialog.showModal(); } catch (e) {}
+      });
+      throw err;
+    }
+  };
+}
+
 async function showConfirmDialog({
   title = "Are you sure?",
   text = "",
@@ -908,29 +953,20 @@ rejectForm.addEventListener("submit", async (event) => {
   const reason = rejectionReason.value.trim();
   if (!reason) {
     showToast("Rejection reason is required.", "error");
-    if (window.Swal) {
-      Swal.fire({
-        icon: "error",
-        iconColor: "#dc3545",
-        title: "Rejection Reason Required",
-        text: "Please provide a rejection reason before rejecting the KYC request.",
-        confirmButtonColor: "#dc3545",
-        confirmButtonText: "OK",
-      });
-    }
+    rejectionReason.focus();
     return;
   }
   const confirmed = await showConfirmDialog({
     title: "Confirm KYC Rejection?",
-    text: "Are you sure you want to reject this KYC request?",
+    text: "Are you sure you want to reject this KYC application and send the edit link?",
     icon: "warning",
     iconColor: "#dc3545",
-    confirmButtonText: "Confirm",
+    confirmButtonText: "Confirm Rejection",
     cancelButtonText: "Cancel",
     confirmButtonColor: "#dc3545",
   });
   if (!confirmed) return;
-  rejectDialog.close();
+  try { rejectDialog.close(); } catch (e) {}
   updateStatus(pendingRejectId, "reject", { reason });
 });
 
