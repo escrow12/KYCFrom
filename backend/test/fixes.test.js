@@ -77,3 +77,32 @@ test("Dynamic signature coordinate calculation algorithm handles 4+ signers", ()
   assert.equal(signCoordinates["s4@example.com"]["1"][0].llx, 45); // Row 2, Col 0
   assert.equal(signCoordinates["s4@example.com"]["1"][0].lly, 60 + (35 + 15)); // Row 2 Y offset
 });
+
+test("Rejected KYC form retains rejectionReason and resets to pending on update", () => {
+  const record = new KycForm({
+    entityName: "Acme Corp",
+    entityType: "Company",
+    entityPan: "ABCDE1234F",
+    registeredAddress: "123 Business Street",
+    authSignatoryName: "John Doe",
+    declarationAccepted: true,
+    applicationStatus: "rejected",
+    status: "rejected",
+    rejectionReason: "Invalid Address Proof document uploaded",
+    directors: [{ name: "John Doe", email: "john@example.com", phone: "9876543210" }],
+  });
+
+  assert.equal(record.applicationStatus, "rejected");
+  assert.equal(record.rejectionReason, "Invalid Address Proof document uploaded");
+
+  // Simulate updating the record from edit form
+  record.registeredAddress = "456 Corrected Street";
+  record.applicationStatus = "pending";
+  record.status = "pending";
+  record.rejectionReason = undefined;
+  record.syncStatuses();
+
+  assert.equal(record.applicationStatus, "pending");
+  assert.equal(record.rejectionReason, undefined);
+  assert.equal(record.registeredAddress, "456 Corrected Street");
+});

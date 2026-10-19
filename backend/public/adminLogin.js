@@ -70,6 +70,17 @@ loginForm.addEventListener(
       loginStatus.textContent =
         "Login successful. Redirecting...";
 
+      if (window.Swal) {
+        await Swal.fire({
+          icon: "success",
+          iconColor: "#28a745",
+          title: "Sign In Successful",
+          text: "Welcome back! Redirecting to dashboard...",
+          showConfirmButton: false,
+          timer: 1200,
+          timerProgressBar: true,
+        });
+      }
 
       // Redirect to Client Verification
       window.location.assign(
@@ -81,6 +92,17 @@ loginForm.addEventListener(
       loginStatus.textContent =
         error.message ||
         "Unable to sign in.";
+
+      if (window.Swal) {
+        Swal.fire({
+          icon: "error",
+          iconColor: "#dc3545",
+          title: "Sign In Failed",
+          text: error.message || "Invalid credentials. Please try again.",
+          confirmButtonColor: "#dc3545",
+          confirmButtonText: "OK",
+        });
+      }
 
       loginPassword.value = "";
 

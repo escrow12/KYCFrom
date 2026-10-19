@@ -77,6 +77,11 @@ router.post("/", kycUpload, async (req, res) => {
       }
     }
 
+    if (bodyData) {
+      if (!bodyData.incomeRange) delete bodyData.incomeRange;
+      if (!bodyData.productType) delete bodyData.productType;
+    }
+
     let uploadedDocuments = {};
     if (req.files) {
       if (req.files.aadhaarCard && req.files.aadhaarCard[0]) {
@@ -98,9 +103,75 @@ router.post("/", kycUpload, async (req, res) => {
       record = await KycForm.findById(targetId);
     }
 
+    // Server-side validation for required fields
+    const missing = [];
+    if (!bodyData.entityName || !String(bodyData.entityName).trim()) missing.push("Corporate Name");
+    if (!bodyData.incorporationDate && !bodyData.incDate) missing.push("Date of Incorporation");
+    if (!bodyData.registrationNo || !String(bodyData.registrationNo).trim()) missing.push("Registration Number");
+    if (!bodyData.entityType || !String(bodyData.entityType).trim()) missing.push("Entity Type");
+    if (!bodyData.entityPan || !String(bodyData.entityPan).trim()) missing.push("Entity PAN");
+    if (!bodyData.natureOfBusiness || !String(bodyData.natureOfBusiness).trim()) missing.push("Nature of Business");
+
+    if (!bodyData.registeredAddress || !String(bodyData.registeredAddress).trim()) missing.push("Registered Address");
+    if (!bodyData.registeredCity || !String(bodyData.registeredCity).trim()) missing.push("Registered City");
+    if (!bodyData.registeredPincode || !String(bodyData.registeredPincode).trim()) missing.push("Registered Pincode");
+    if (!bodyData.registeredState || !String(bodyData.registeredState).trim()) missing.push("Registered State");
+    if (!bodyData.registeredCountry || !String(bodyData.registeredCountry).trim()) missing.push("Registered Country");
+    if (!bodyData.phone || !String(bodyData.phone).trim()) missing.push("Entity Phone");
+    if (!bodyData.email || !String(bodyData.email).trim()) missing.push("Entity Email");
+
+    if (!bodyData.authSignatoryName || !String(bodyData.authSignatoryName).trim()) missing.push("Authorized Signatory Name");
+    if (!bodyData.dob) missing.push("Authorized Signatory DOB");
+    if (!bodyData.authSignatoryTel || !String(bodyData.authSignatoryTel).trim()) missing.push("Authorized Signatory Tel");
+    if (!bodyData.authSignatoryEmail || !String(bodyData.authSignatoryEmail).trim()) missing.push("Authorized Signatory Email");
+    if (!bodyData.authSignatoryPan || !String(bodyData.authSignatoryPan).trim()) missing.push("Authorized Signatory PAN");
+    if (!bodyData.authSignatoryOvdNo || !String(bodyData.authSignatoryOvdNo).trim()) missing.push("Authorized Signatory OVD No");
+
+    if (!bodyData.panCardMandatory) missing.push("Copy of PAN Card (Mandatory)");
+
+    if (!bodyData.clientName || !String(bodyData.clientName).trim()) missing.push("Corporate / Client Name");
+    if (!bodyData.clientDesignation || !String(bodyData.clientDesignation).trim()) missing.push("Corporate / Client Designation");
+    if (!bodyData.clientDate) missing.push("Corporate / Client Date");
+    if (!bodyData.clientPlace || !String(bodyData.clientPlace).trim()) missing.push("Corporate / Client Place");
+
+    if (!bodyData.verifiedByRmName || !String(bodyData.verifiedByRmName).trim()) missing.push("Relationship Manager Name");
+    if (!bodyData.rmDesignation || !String(bodyData.rmDesignation).trim()) missing.push("Relationship Manager Designation");
+    if (!bodyData.rmDate) missing.push("Relationship Manager Date");
+    if (!bodyData.rmPlace || !String(bodyData.rmPlace).trim()) missing.push("Relationship Manager Place");
+
+    if (!bodyData.originalVerified) missing.push("(Original Verified) – True copies of Document received");
+    if (!bodyData.selfAttested) missing.push("(Self-Attested) – Self Certified document copies received");
+    if (!bodyData.clientSignatureVerified) missing.push("Client signature verified");
+    if (!bodyData.documentsSeenAndVerified) missing.push("Entity documents seen and verified");
+    if (!bodyData.signedInPresence) missing.push("Entity authorized person signed in presence");
+
+    if (!directorsList || directorsList.length === 0) {
+      missing.push("At least one Director for KYC");
+    }
+
+    if (!record) {
+      if (!uploadedDocuments.aadhaarCard) missing.push("Aadhaar Card document");
+      if (!uploadedDocuments.panCard) missing.push("PAN Card document");
+    }
+
+    if (missing.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Please fill all required KYC fields: ${missing.join(", ")}`,
+        missingFields: missing,
+      });
+    }
+
+    if (!bodyData.incorporationDate && bodyData.incDate) {
+      bodyData.incorporationDate = bodyData.incDate;
+    }
+
     if (record) {
       // Update existing record
-      Object.assign(record, bodyData);
+      const cleanBodyData = { ...bodyData };
+      delete cleanBodyData._id;
+      delete cleanBodyData.kycId;
+      Object.assign(record, cleanBodyData);
       record.directors = directorsList.length ? directorsList : record.directors;
       if (uploadedDocuments.aadhaarCard || uploadedDocuments.panCard) {
         record.uploadedDocuments = {
@@ -109,6 +180,11 @@ router.post("/", kycUpload, async (req, res) => {
         };
       }
       record.applicationStatus = "pending";
+      record.status = "pending";
+      record.rejectionReason = undefined;
+      record.rejectedAt = undefined;
+      record.rejectedBy = undefined;
+      record.approvalInProgress = false;
       await record.save();
     } else {
       // Create new record

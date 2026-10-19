@@ -49,6 +49,18 @@ const digioSchema = new mongoose.Schema(
 );
 
 
+const directorAgreementSchema = new mongoose.Schema(
+  {
+    status: { type: String, enum: ["not_started", "pending", "sent", "signed"], default: "not_started" },
+    documentId: String,
+    signingUrl: String,
+    sentAt: Date,
+    signedAt: Date,
+    emailError: String,
+  },
+  { _id: false }
+);
+
 const directorSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
@@ -58,6 +70,7 @@ const directorSchema = new mongoose.Schema(
     din: String,
     digio: { type: digioSchema, default: undefined },
     status: { type: String, enum: ["pending", "requested", "completed", "rejected"], default: "pending" },
+    agreement: { type: directorAgreementSchema, default: undefined },
     completedAt: Date,
     rejectionReason: String,
     emailError: String,
@@ -84,6 +97,7 @@ const agreementSchema = new mongoose.Schema(
     documentId: String,
     signingUrl: String,
     signers: [agreementSignerSchema],
+    selectedDirectorId: String,
     lastAction: String,
     lastSyncedAt: Date,
     error: String,

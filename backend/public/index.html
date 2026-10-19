@@ -19,7 +19,7 @@
       </div>
     </header>
 
-    <form id="kycForm">
+    <form id="kycForm" novalidate>
       <!-- Top Header Details - Above A. Identity Details -->
       <div class="top-form-details">
 
@@ -86,7 +86,7 @@
         <div class="original-field full">
           <div class="field-title">
             1. Name of the Corporate (Please write name as per certificate of Incorporation / Registration leaving one
-            box blank between two words)
+            box blank between two words) <span class="req-star">*</span>
           </div>
 
           <div class="letter-boxes">
@@ -98,7 +98,7 @@
         <div class="original-row">
           <div class="original-field registration-number-field">
             <div class="field-title">
-              3. Registration Number issued by Registration Authority
+              3. Registration Number issued by Registration Authority <span class="req-star">*</span>
             </div>
 
             <div class="letter-boxes">
@@ -108,7 +108,7 @@
 
           <div class="original-field incorporation-date-field">
             <div class="field-title">
-              2. Date of Incorporation/Registration
+              2. Date of Incorporation/Registration <span class="req-star">*</span>
             </div>
 
             <input type="date" name="incDate" class="simple-date-input" aria-label="Date of Incorporation" />
@@ -118,7 +118,7 @@
         <!-- 4. Entity Type -->
         <div class="original-field entity-type-field">
           <div class="field-title entity-type-title">
-            4. Entity type
+            4. Entity type <span class="req-star">*</span>
           </div>
 
           <div class="entity-type-options">
@@ -148,6 +148,11 @@
               <span>Society</span>
             </label>
 
+            <label>
+              <input type="radio" name="entityType" value="Trust" />
+              <span>Trust</span>
+            </label>
+
             <label class="please-specify">
               <span>Please Specify</span>
               <input type="text" name="entityTypeOther" />
@@ -161,7 +166,7 @@
 
           <div class="original-field pan-field">
             <div class="field-title">
-              5. Entity Permanent Account Number
+              5. Entity Permanent Account Number <span class="req-star">*</span>
             </div>
 
             <div class="letter-boxes">
@@ -171,7 +176,7 @@
 
           <div class="original-field business-field">
             <div class="field-title">
-              6. Nature of Business
+              6. Nature of Business <span class="req-star">*</span>
             </div>
 
             <div class="letter-boxes">
@@ -190,7 +195,7 @@
         <!-- 1. Registered Address -->
         <div class="address-field full">
           <div class="field-title">
-            1. Registered Address
+            1. Registered Address <span class="req-star">*</span>
           </div>
 
           <div class="letter-boxes address-line">
@@ -200,14 +205,14 @@
 
         <div class="address-row">
           <div class="address-field city-field">
-            <div class="field-label">City/Town/Village : </div>
+            <div class="field-label">City/Town/Village <span class="req-star">*</span> : </div>
             <div class="letter-boxes">
               <input type="text" name="registeredCity" />
             </div>
           </div>
 
           <div class="address-field pincode-field">
-            <div class="field-label">Pincode : </div>
+            <div class="field-label">Pincode <span class="req-star">*</span> : </div>
             <div class="letter-boxes">
               <input type="text" name="registeredPincode" maxlength="6" />
             </div>
@@ -216,14 +221,14 @@
 
         <div class="address-row">
           <div class="address-field state-field">
-            <div class="field-label">State : </div>
+            <div class="field-label">State <span class="req-star">*</span> : </div>
             <div class="letter-boxes">
               <input type="text" name="registeredState" />
             </div>
           </div>
 
           <div class="address-field country-field">
-            <div class="field-label">Country : </div>
+            <div class="field-label">Country <span class="req-star">*</span> : </div>
             <div class="letter-boxes">
               <input type="text" name="registeredCountry" />
             </div>
@@ -232,7 +237,7 @@
 
         <div class="address-row">
           <div class="address-field phone-field">
-            <div class="field-label">Ph. No. : </div>
+            <div class="field-label">Ph. No. <span class="req-star">*</span> : </div>
             <div class="letter-boxes">
               <input type="text" name="phone" />
             </div>
@@ -247,7 +252,7 @@
         </div>
 
         <div class="address-field full">
-          <div class="field-label">Email ID : </div>
+          <div class="field-label">Email ID <span class="req-star">*</span> : </div>
           <div class="letter-boxes">
             <input type="email" name="email" />
           </div>
@@ -257,7 +262,7 @@
         <!-- 2. Address for Correspondence -->
         <div class="address-field full correspondence-title">
           <div class="field-title">
-            2. Address for Correspondence (If different from Registered Address)
+            2. Address for Correspondence (If different from Registered Address) <span style="font-weight: normal; font-size: 11px; color: #666;">(Optional)</span>
           </div>
         </div>
 
@@ -303,14 +308,14 @@
 
         <div class="address-row">
           <div class="address-field contact-name-field">
-            <div class="field-label">Mr./Mrs./Ms. : </div>
+            <div class="field-label">Mr./Mrs./Ms. <span class="req-star">*</span> : </div>
             <div class="letter-boxes">
               <input type="text" name="authSignatoryName" required />
             </div>
           </div>
 
           <div class="address-field dob-field">
-            <div class="field-label" style="margin-left: -40px;">DOB : </div>
+            <div class="field-label" style="margin-left: -40px;">DOB <span class="req-star">*</span> : </div>
 
             <input type="date" name="dob" class="simple-date-input" aria-label="Date of Birth" />
           </div>
@@ -318,7 +323,7 @@
 
         <div class="address-row">
           <div class="address-field tel-field">
-            <div class="field-label">Tel (Off) : </div>
+            <div class="field-label">Tel (Off) <span class="req-star">*</span> : </div>
             <div class="letter-boxes">
               <input type="text" name="authSignatoryTel" />
             </div>
@@ -333,7 +338,7 @@
         </div>
 
         <div class="address-field full">
-          <div class="field-label">Email ID : </div>
+          <div class="field-label">Email ID <span class="req-star">*</span> : </div>
           <div class="letter-boxes">
             <input type="email" name="authSignatoryEmail" />
           </div>
@@ -349,14 +354,14 @@
 
         <div class="address-row">
           <div class="address-field pan-field-b">
-            <div class="field-label">PAN No. : </div>
+            <div class="field-label">PAN No. <span class="req-star">*</span> : </div>
             <div class="letter-boxes">
               <input type="text" name="authSignatoryPan" maxlength="10" style="text-transform: uppercase;" />
             </div>
           </div>
 
           <div class="address-field ovd-field-b">
-            <div class="field-label">OVD No. : </div>
+            <div class="field-label">OVD No. <span class="req-star">*</span> : </div>
             <div class="letter-boxes">
               <input type="text" name="authSignatoryOvdNo" />
             </div>
@@ -383,7 +388,7 @@
             </span>
           </label>
 
-          <div class="pep-details">
+          <div class="pep-details" id="pepDetailsWrap">
             <strong>Details of PEP/RPEP</strong>
 
             <input type="text" name="pepDetails" id="pepDetails" />
@@ -572,7 +577,7 @@
 
             <label>
               <input type="checkbox" name="panCardMandatory" />
-              Copy of PAN Card (Mandatory for all categories of a entity)
+              Copy of PAN Card (Mandatory for all categories of a entity) <span class="req-star">*</span>
             </label>
 
             <label>
@@ -1174,6 +1179,7 @@
     </form>
   </div>
 
+  <script src="sweetalert2.all.min.js"></script>
   <script src="script.js"></script>
 </body>
 

@@ -133,12 +133,19 @@ async function requestDirectorKyc(record, director) {
     throw error;
   }
   const response = await digio.createRequest(payload);
-  const identifiers = digio.extractIdentifiers(response.data);
+  const identifiers = digio.extractIdentifiers(response.data, null, director.email || payload.customer_identifier);
   if (!identifiers.kid || typeof identifiers.kid !== "string" || !identifiers.kid.trim()) {
     const error = new Error(`DigiO KYC request succeeded but KID could not be extracted for director "${director.name}".`);
     error.code = "DIGIO_INVALID_RESPONSE";
     throw error;
   }
+
+  const directorEmail = String(director.email || payload.customer_identifier || "").trim();
+  const gatewayHost = (process.env.BASE_URL || "").includes("ext.digio.in") ? "https://ext.digio.in" : "https://app.digio.in";
+  const gwtFormatted = digio.formatGwtCode(identifiers.accessToken);
+  const formattedAccessLink = (identifiers.kid && gwtFormatted && directorEmail)
+    ? `${gatewayHost}/#/gateway/login/${identifiers.kid}/${gwtFormatted}/${directorEmail}`
+    : identifiers.accessLink;
 
   director.digio = {
     customerIdentifier: payload.customer_identifier,
@@ -148,7 +155,7 @@ async function requestDirectorKyc(record, director) {
     rid: identifiers.rid,
     actionIds: identifiers.actionIds || [],
     accessToken: identifiers.accessToken,
-    accessLink: identifiers.accessLink,
+    accessLink: formattedAccessLink,
     status: identifiers.status || "requested",
     lastAction: "request",
     lastSyncedAt: new Date(),
@@ -364,6 +371,19 @@ router.get("/:id", requireAdmin, async (req, res) => {
       return res.status(404).json({ success: false, message: "KYC record not found." });
     }
 
+    if (record.directors && Array.isArray(record.directors)) {
+      record.directors.forEach((director) => {
+        if (director.digio) {
+          director.digio.accessLink = digio.formatDigioKycLink(
+            director.digio.accessLink,
+            director.digio.kid,
+            director.digio.accessToken,
+            director.email
+          );
+        }
+      });
+    }
+
     res.json({ success: true, data: record });
   } catch (err) {
     console.error(`Admin KYC detail error (${req.params.id}):`, err);
@@ -413,74 +433,35 @@ router.post("/:id/approve", requireAdmin, async (req, res) => {
       }
     }
 
-    // Request DigiO KYC for each director
-    const directorErrors = [];
-    for (const director of record.directors || []) {
-      try {
-        await requestDirectorKyc(record, director);
-      } catch (dirErr) {
-        const msg = dirErr.providerData?.message || dirErr.message;
-        console.error(`Director ${director.name} DigiO request error:`, msg);
-        director.rejectionReason = msg;
-        directorErrors.push(`${director.name}: ${msg}`);
-      }
+    record.applicationStatus = "approved";
+    record.kycStatus = record.kycStatus || (record.directors && record.directors.some((d) => d.status === "requested" || d.status === "completed") ? "in_progress" : "not_started");
+    record.approvedBy = req.adminId;
+    record.approvedAt = new Date();
+    record.approvalInProgress = false;
+    if (record.digio) {
+      record.digio.status = record.digio?.status || "approved";
+      record.digio.lastAction = "approval";
+      record.digio.lastSyncedAt = new Date();
     }
-
-    record.markModified("directors");
     await record.save();
 
-    // If directors exist and all failed to get a real KID:
-    if (record.directors && record.directors.length > 0 && record.directors.every(d => !d.digio?.kid)) {
-      await KycForm.updateOne({ _id: record._id }, { $set: { approvalInProgress: false, directors: record.directors } });
-      return res.status(502).json({
-        success: false,
-        message: `Director DigiO KYC request failed: ${directorErrors.join("; ")}`,
-        errors: directorErrors
-      });
-    }
-
-    const nextKycStatus = record.directors && record.directors.length ? "in_progress" : "not_started";
-    const approved = await KycForm.findOne({ _id: record._id });
-    approved.applicationStatus = "approved";
-    approved.kycStatus = nextKycStatus;
-    approved.approvedBy = req.adminId;
-    approved.approvedAt = new Date();
-    approved.approvalInProgress = false;
-    if (approved.digio) {
-      approved.digio.status = approved.digio?.status || "approved";
-      approved.digio.lastAction = "approval";
-      approved.digio.lastSyncedAt = new Date();
-    }
-    await approved.save();
-
     // Send main approval email asynchronously & capture any failure
-    const apprEmailRes = await sendApprovalEmail(approved).catch((err) => ({ success: false, error: err.message }));
+    const apprEmailRes = await sendApprovalEmail(record).catch((err) => ({ success: false, error: err.message }));
     if (!apprEmailRes.success) {
-      approved.emailError = apprEmailRes.error;
+      record.emailError = apprEmailRes.error;
     } else {
-      approved.emailError = undefined;
+      record.emailError = undefined;
     }
-
-    // Send Director KYC emails to each director's email ID & capture failures
-    for (const director of approved.directors || []) {
-      const dirEmailRes = await sendDirectorKycEmail(director, approved).catch((err) => ({ success: false, error: err.message }));
-      if (!dirEmailRes.success) {
-        director.emailError = dirEmailRes.error;
-      } else {
-        director.emailError = undefined;
-      }
-    }
-    approved.markModified("directors");
-    await approved.save();
+    await record.save();
 
     return res.json({
       success: true,
       data: {
-        id: approved._id,
-        applicationStatus: approved.applicationStatus,
-        kycStatus: approved.kycStatus,
-        agreementStatus: approved.agreementStatus,
-        status: approved.status,
+        id: record._id,
+        applicationStatus: record.applicationStatus,
+        kycStatus: record.kycStatus,
+        agreementStatus: record.agreementStatus,
+        status: record.status,
       },
     });
   } catch (error) {
@@ -568,6 +549,10 @@ router.post("/:id/directors/:directorId/approve", requireAdmin, async (req, res)
     const director = record.directors.id(req.params.directorId);
     if (!director) return res.status(404).json({ success: false, message: "Director not found." });
 
+    if (record.applicationStatus !== "approved" && record.status !== "approved") {
+      return res.status(400).json({ success: false, message: "Please approve the application form details before approving Director KYC." });
+    }
+
     const kid = director.digio && director.digio.kid;
     if (!kid) {
       return res.status(400).json({
@@ -652,31 +637,10 @@ router.post("/:id/directors", requireAdmin, async (req, res) => {
 
     const addedDirector = record.directors[record.directors.length - 1];
 
-    let kid = null;
-    let digioError = null;
-    if (["approved"].includes(record.applicationStatus) || ["approved", "director_kyc_pending"].includes(record.status)) {
-      try {
-        kid = await requestDirectorKyc(record, addedDirector);
-        record.kycStatus = "in_progress";
-        await record.save();
-        const emailRes = await sendDirectorKycEmail(addedDirector, record).catch((err) => ({ success: false, error: err.message }));
-        if (!emailRes.success) {
-          addedDirector.emailError = emailRes.error;
-          record.markModified("directors");
-          await record.save();
-        }
-      } catch (err) {
-        digioError = err.message;
-        console.warn(`Auto DigiO request note for newly added director ${name}:`, err.message);
-      }
-    }
-
     return res.status(201).json({
       success: true,
       data: {
         director: addedDirector,
-        kid,
-        digioError,
         kycStatus: record.kycStatus,
         agreementStatus: record.agreementStatus,
         status: record.status,
@@ -697,6 +661,10 @@ router.post("/:id/directors/:directorId/send-kyc", requireAdmin, async (req, res
     if (!record) return res.status(404).json({ success: false, message: "KYC record not found." });
     const director = record.directors.id(req.params.directorId);
     if (!director) return res.status(404).json({ success: false, message: "Director not found." });
+
+    if (record.applicationStatus !== "approved" && record.status !== "approved") {
+      return res.status(400).json({ success: false, message: "Please approve the application form details before sending Director KYC." });
+    }
 
     director.digio = undefined;
     director.status = "pending";
@@ -734,6 +702,167 @@ router.post("/:id/directors/:directorId/send-kyc", requireAdmin, async (req, res
     if (error.code && error.code.startsWith("DIGIO_")) {
       return res.status(error.code === "DIGIO_PROVIDER_ERROR" ? 502 : 503).json({ success: false, message: error.message, code: error.code });
     }
+    return res.status(500).json({ success: false, message: error.message || "Failed to send director KYC." });
+  }
+});
+
+router.post("/:id/directors/:directorId/send-agreement", requireAdmin, async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id) || !mongoose.Types.ObjectId.isValid(req.params.directorId)) {
+      return res.status(400).json({ success: false, message: "Invalid KYC or director ID." });
+    }
+    const record = await KycForm.findById(req.params.id);
+    if (!record) return res.status(404).json({ success: false, message: "KYC record not found." });
+    const director = record.directors.id(req.params.directorId);
+    if (!director) return res.status(404).json({ success: false, message: "Director not found." });
+
+    if (record.applicationStatus !== "approved" && record.status !== "approved") {
+      return res.status(400).json({ success: false, message: "Application form details must be approved before sending Agreement." });
+    }
+
+    if (record.agreementStatus === "signed" || record.agreement?.status === "signed" || record.status === "completed") {
+      return res.status(409).json({ success: false, message: "Agreement has already been completed and signed." });
+    }
+
+    if (director.status !== "completed") {
+      return res.status(400).json({ success: false, message: "Director KYC must be completed before sending the agreement." });
+    }
+
+    const signerEmail = String(director.email || "").trim().toLowerCase();
+    const signerName = String(director.name || "").trim();
+
+    if (!signerEmail) {
+      return res.status(400).json({ success: false, message: "Director email is required for sending the agreement." });
+    }
+
+    const pdfBuffer = await generateAgreementPdf(record);
+    const signers = [{
+      identifier: signerEmail,
+      name: signerName,
+      sign_type: "aadhaar",
+      reason: "Master Agent Onboarding Agreement Signing",
+    }];
+
+    const signCoordinates = {};
+    const boxWidth = 120;
+    const boxHeight = 40;
+    const llx = 45;
+    const lly = 60;
+    const urx = llx + boxWidth;
+    const ury = lly + boxHeight;
+    signCoordinates[signerEmail] = {
+      "1": [{ llx, lly, urx, ury }]
+    };
+
+    const fileName = `Master_Agent_Agreement_${String(record.entityName || record._id).replace(/[^a-z0-9_-]/gi, "_")}_${String(signerName).replace(/[^a-z0-9_-]/gi, "_")}.pdf`;
+    const payload = {
+      signers,
+      expire_in_days: 10,
+      display_on_page: "Custom",
+      notify_signers: true,
+      send_sign_link: true,
+      file_name: fileName,
+      file_data: pdfBuffer.toString("base64"),
+      sign_coordinates: signCoordinates,
+    };
+
+    const providerResponse = await digio.createSigningRequest(payload);
+    const identifiers = digio.extractIdentifiers(providerResponse.data);
+    const providerData = providerResponse.data && typeof providerResponse.data === "object" ? providerResponse.data : {};
+    const documentId = providerData.id || providerData.document_id || identifiers.requestId;
+    if (!documentId) {
+      const error = new Error("DigiSign response did not contain a document identifier.");
+      error.code = "DIGIO_INVALID_RESPONSE";
+      throw error;
+    }
+
+    const signBase = process.env.DIGISIGN_BASE_URL || "";
+    const signGatewayHost = signBase.includes("ext.digio.in") ? "https://ext.digio.in" : "https://app.digio.in";
+
+    let signingToken = "";
+    try {
+      const tokenRes = await digio.regenerateSigningToken(documentId);
+      signingToken = (tokenRes.data && (tokenRes.data.id || tokenRes.data.response?.id || tokenRes.data.token_id)) || "";
+    } catch (tokenErr) {
+      console.warn("Could not generate gateway token for document:", tokenErr.message);
+    }
+
+    const encodedId = encodeURIComponent(signerEmail);
+    const signingUrl = signingToken
+      ? `${signGatewayHost}/#/gateway/login/${documentId}/${signingToken}/${encodedId}`
+      : `${signGatewayHost}/#/gateway/login/${documentId}/${encodedId}/`;
+
+    director.agreement = {
+      status: "sent",
+      documentId,
+      signingUrl,
+      sentAt: new Date(),
+    };
+
+    if (!record.agreement) {
+      record.agreement = {
+        status: "sent",
+        documentId,
+        signingUrl,
+        signers: [],
+        selectedDirectorId: String(director._id),
+        lastAction: "create_director_agreement",
+        lastSyncedAt: new Date(),
+      };
+    } else {
+      record.agreement.status = "sent";
+      record.agreement.documentId = documentId;
+      record.agreement.signingUrl = signingUrl;
+      record.agreement.selectedDirectorId = String(director._id);
+      record.agreement.lastSyncedAt = new Date();
+    }
+    record.agreementStatus = "sent";
+
+    if (!record.agreement.signers) record.agreement.signers = [];
+    const existingSignerIndex = record.agreement.signers.findIndex((s) => s.email && s.email.toLowerCase() === signerEmail);
+    if (existingSignerIndex >= 0) {
+      record.agreement.signers[existingSignerIndex].status = "pending";
+      record.agreement.signers[existingSignerIndex].providerSignerId = documentId;
+    } else {
+      record.agreement.signers.push({
+        name: signerName,
+        email: signerEmail,
+        providerSignerId: documentId,
+        status: "pending",
+      });
+    }
+
+    const emailRes = await sendAgreementSigningEmail({ name: signerName, identifier: signerEmail }, record, signingUrl).catch((err) => ({ success: false, error: err.message }));
+    if (!emailRes.success) {
+      director.agreement.emailError = emailRes.error;
+      const targetSigner = record.agreement.signers.find((s) => s.email === signerEmail);
+      if (targetSigner) targetSigner.emailError = emailRes.error;
+    } else {
+      director.agreement.emailError = undefined;
+    }
+
+    record.markModified("directors");
+    record.markModified("agreement");
+    await record.save();
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        id: record._id,
+        directorId: director._id,
+        documentId,
+        signingUrl,
+        agreementStatus: record.agreementStatus,
+        directorAgreement: director.agreement,
+        emailError: director.agreement?.emailError,
+      },
+    });
+  } catch (error) {
+    console.error(`Send director agreement error (${req.params.id}, director ${req.params.directorId}):`, error.message);
+    if (error.code && error.code.startsWith("DIGIO_")) {
+      return res.status(error.code === "DIGIO_PROVIDER_ERROR" ? 502 : 503).json({ success: false, message: error.message, code: error.code });
+    }
+    return res.status(500).json({ success: false, message: error.message || "Failed to send agreement to director." });
   }
 });
 
@@ -764,62 +893,83 @@ router.post("/:id/agreement", requireAdmin, async (req, res) => {
     const record = await KycForm.findById(req.params.id);
     if (!record) return res.status(404).json({ success: false, message: "KYC record not found." });
     
-    // Application must be approved before sending agreement, but doesn't require director KYC to be finished first
+    // Application KYC must be approved by Admin before creating an agreement
     const isApproved = record.applicationStatus === "approved" || ["approved", "director_kyc_pending", "director_kyc_completed", "agreement_pending"].includes(record.status);
     if (!isApproved) {
-      return res.status(409).json({ success: false, message: "Application must be approved by Admin before creating an agreement." });
+      return res.status(409).json({ success: false, message: "Application KYC must be approved by Admin before creating an agreement." });
     }
+
+    // Director KYC must be completed before sending an agreement
+    const hasIncompleteDirector = record.directors && record.directors.length > 0 && record.directors.some((d) => d.status !== "completed");
+    if (hasIncompleteDirector) {
+      return res.status(409).json({ success: false, message: "All directors must complete KYC verification before sending the agreement." });
+    }
+
+    // Check if agreement is already signed / completed
+    const isAlreadySigned = record.agreementStatus === "signed" || record.agreement?.status === "signed" || record.status === "completed";
+    if (isAlreadySigned) {
+      return res.status(409).json({ success: false, message: "Agreement has already been completed and signed." });
+    }
+
     if (record.agreement && record.agreement.providerRequestId && record.agreement.status === "sent") {
       return res.status(409).json({ success: false, message: "An agreement signing request is already active for this application." });
     }
 
-    const signerEmail = String(req.body.email || record.authSignatoryEmail || record.email || "").trim().toLowerCase();
-    const signerName = String(req.body.name || record.authSignatoryName || record.entityName || "").trim();
+    // Determine target director for agreement
+    let selectedDirector = null;
+    if (req.body.directorId) {
+      selectedDirector = (record.directors && record.directors.id) ? record.directors.id(req.body.directorId) : (record.directors && record.directors.find((d) => String(d._id) === String(req.body.directorId)));
+      if (!selectedDirector) {
+        return res.status(400).json({ success: false, message: "Selected director not found in this application." });
+      }
+    } else if (record.directors && record.directors.length === 1) {
+      selectedDirector = record.directors[0];
+    } else if (record.directors && record.directors.length > 1) {
+      return res.status(400).json({ success: false, message: "Multiple directors found. Please select which director to send the agreement to." });
+    }
+
+    if (selectedDirector) {
+      if (selectedDirector.status !== "completed") {
+        return res.status(400).json({ success: false, message: `Director ${selectedDirector.name} must complete KYC verification before receiving the agreement.` });
+      }
+    } else {
+      const hasIncompleteDirector = record.directors && record.directors.length > 0 && record.directors.some((d) => d.status !== "completed");
+      if (hasIncompleteDirector) {
+        return res.status(409).json({ success: false, message: "All directors must complete KYC verification before sending the agreement." });
+      }
+    }
+
+    const signerEmail = selectedDirector
+      ? String(selectedDirector.email || "").trim().toLowerCase()
+      : String(req.body.email || record.authSignatoryEmail || record.email || "").trim().toLowerCase();
+    const signerName = selectedDirector
+      ? String(selectedDirector.name || "").trim()
+      : String(req.body.name || record.authSignatoryName || record.entityName || "").trim();
+
+    if (!signerEmail) {
+      return res.status(400).json({ success: false, message: "Director email is required for sending the agreement." });
+    }
 
     const pdfBuffer = await generateAgreementPdf(record);
-    const signers = (record.directors && record.directors.length > 0)
-      ? record.directors.map((d) => ({
-          identifier: String(d.email).trim().toLowerCase(),
-          name: String(d.name).trim(),
-          sign_type: "aadhaar",
-          reason: "Master Agent Onboarding Agreement Signing",
-        }))
-      : [{
-          identifier: signerEmail,
-          name: signerName,
-          sign_type: "aadhaar",
-          reason: "Master Agent Onboarding Agreement Signing",
-        }];
+    const signers = [{
+      identifier: signerEmail,
+      name: signerName,
+      sign_type: "aadhaar",
+      reason: "Master Agent Onboarding Agreement Signing",
+    }];
 
-    // Dynamic signature coordinates calculation based on page layout and signer count
     const signCoordinates = {};
-    const boxWidth = 112;
-    const boxHeight = 35;
-    const marginX = 45;
-    const spacingX = 20;
-    const spacingY = 15;
-    const startY = 60;
-    const boxesPerRow = 3;
+    const boxWidth = 120;
+    const boxHeight = 40;
+    const llx = 45;
+    const lly = 60;
+    const urx = llx + boxWidth;
+    const ury = lly + boxHeight;
+    signCoordinates[signerEmail] = {
+      "1": [{ llx, lly, urx, ury }]
+    };
 
-    signers.forEach((s, idx) => {
-      const row = Math.floor(idx / boxesPerRow);
-      const col = idx % boxesPerRow;
-      const llx = marginX + col * (boxWidth + spacingX);
-      const lly = startY + (row % 3) * (boxHeight + spacingY);
-      const urx = llx + boxWidth;
-      const ury = lly + boxHeight;
-      const pageNo = String(1 + Math.floor(row / 3));
-
-      if (!signCoordinates[s.identifier]) {
-        signCoordinates[s.identifier] = {};
-      }
-      if (!signCoordinates[s.identifier][pageNo]) {
-        signCoordinates[s.identifier][pageNo] = [];
-      }
-      signCoordinates[s.identifier][pageNo].push({ llx, lly, urx, ury });
-    });
-
-    const fileName = `Master_Agent_Agreement_${String(record.entityName || record._id).replace(/[^a-z0-9_-]/gi, "_")}.pdf`;
+    const fileName = `Master_Agent_Agreement_${String(record.entityName || record._id).replace(/[^a-z0-9_-]/gi, "_")}_${String(signerName).replace(/[^a-z0-9_-]/gi, "_")}.pdf`;
     const payload = {
       signers,
       expire_in_days: Number(req.body.expire_in_days) || 10,
@@ -834,39 +984,69 @@ router.post("/:id/agreement", requireAdmin, async (req, res) => {
     const providerResponse = await digio.createSigningRequest(payload);
     const identifiers = digio.extractIdentifiers(providerResponse.data);
     const providerData = providerResponse.data && typeof providerResponse.data === "object" ? providerResponse.data : {};
-    const documentId = providerData.id || providerData.document_id || identifiers.requestId || identifiers.kid;
+    const documentId = providerData.id || providerData.document_id || identifiers.requestId;
     if (!documentId) {
       const error = new Error("DigiSign response did not contain a document identifier.");
       error.code = "DIGIO_INVALID_RESPONSE";
       throw error;
     }
 
-    const signingUrl = identifiers.accessLink || `https://ext.digio.in/#/gateway/login/${documentId}/${encodeURIComponent(signers[0].identifier)}/`;
+    const signBase = process.env.DIGISIGN_BASE_URL || "";
+    const signGatewayHost = signBase.includes("ext.digio.in") ? "https://ext.digio.in" : "https://app.digio.in";
+
+    let signingToken = "";
+    try {
+      const tokenRes = await digio.regenerateSigningToken(documentId);
+      signingToken = (tokenRes.data && (tokenRes.data.id || tokenRes.data.response?.id || tokenRes.data.token_id)) || "";
+    } catch (tokenErr) {
+      console.warn("Could not generate gateway token for document:", tokenErr.message);
+    }
+
+    const firstSignerIdentifier = (signers && signers[0] && signers[0].identifier) || signerEmail || "";
+    const buildSignUrl = (ident) => {
+      const encodedId = encodeURIComponent(ident);
+      if (signingToken) {
+        return `${signGatewayHost}/#/gateway/login/${documentId}/${signingToken}/${encodedId}`;
+      }
+      return `${signGatewayHost}/#/gateway/login/${documentId}/${encodedId}/`;
+    };
+
+    const signingUrl = buildSignUrl(firstSignerIdentifier);
+
+    if (selectedDirector) {
+      selectedDirector.agreement = {
+        status: "sent",
+        documentId,
+        signingUrl,
+        sentAt: new Date(),
+      };
+    }
 
     record.agreement = {
       status: "sent",
       providerRequestId: documentId,
       documentId: documentId,
       signingUrl,
-      signers: signers.map((s) => ({ name: s.name, email: s.identifier, status: "pending" })),
+      signers: [{ name: signerName, email: signerEmail, status: "pending", providerSignerId: documentId }],
+      selectedDirectorId: selectedDirector ? String(selectedDirector._id) : undefined,
       lastAction: "create",
       lastSyncedAt: new Date(),
     };
     record.agreementStatus = "sent";
-    await record.save();
 
-    // Send email to all signers with the agreement signing link & capture failures
+    // Send email to the selected director with the agreement signing link & capture failures
     let agreementEmailError = null;
-    for (const signer of signers) {
-      const signerUrl = identifiers.accessLink || `https://ext.digio.in/#/gateway/login/${documentId}/${encodeURIComponent(signer.identifier)}/`;
-      const emailRes = await sendAgreementSigningEmail(signer, record, signerUrl).catch((err) => ({ success: false, error: err.message }));
-      if (!emailRes.success) {
-        agreementEmailError = emailRes.error;
-        const targetSigner = record.agreement.signers.find((s) => s.email === signer.identifier);
-        if (targetSigner) targetSigner.emailError = emailRes.error;
-      }
+    const emailRes = await sendAgreementSigningEmail({ name: signerName, identifier: signerEmail }, record, signingUrl).catch((err) => ({ success: false, error: err.message }));
+    if (!emailRes.success) {
+      agreementEmailError = emailRes.error;
+      record.agreement.signers[0].emailError = emailRes.error;
+      if (selectedDirector) selectedDirector.agreement.emailError = emailRes.error;
+    } else {
+      if (selectedDirector) selectedDirector.agreement.emailError = undefined;
     }
     record.agreement.emailError = agreementEmailError || undefined;
+    record.markModified("directors");
+    record.markModified("agreement");
     await record.save();
 
     return res.status(201).json({
@@ -942,6 +1122,19 @@ router.post("/:id/agreement/sync", requireAdmin, async (req, res) => {
           s.signedAt = s.signedAt || new Date();
         });
       }
+      if (record.directors && record.directors.length) {
+        record.directors.forEach((d) => {
+          if (
+            (record.agreement.selectedDirectorId && String(d._id) === String(record.agreement.selectedDirectorId)) ||
+            (record.agreement.signers && record.agreement.signers.some((s) => s.email && s.email.toLowerCase() === (d.email || "").toLowerCase()))
+          ) {
+            if (!d.agreement) d.agreement = {};
+            d.agreement.status = "signed";
+            d.agreement.signedAt = d.agreement.signedAt || new Date();
+          }
+        });
+        record.markModified("directors");
+      }
       const completeRes = await sendKycCompletedEmail(record).catch((err) => ({ success: false, error: err.message }));
       if (!completeRes.success) {
         record.emailError = completeRes.error;
@@ -988,6 +1181,19 @@ router.post("/:id/agreement/approve", requireAdmin, async (req, res) => {
         s.status = "signed";
         s.signedAt = s.signedAt || new Date();
       });
+    }
+    if (record.directors && record.directors.length) {
+      record.directors.forEach((d) => {
+        if (
+          (record.agreement.selectedDirectorId && String(d._id) === String(record.agreement.selectedDirectorId)) ||
+          (record.agreement.signers && record.agreement.signers.some((s) => s.email && s.email.toLowerCase() === (d.email || "").toLowerCase()))
+        ) {
+          if (!d.agreement) d.agreement = {};
+          d.agreement.status = "signed";
+          d.agreement.signedAt = d.agreement.signedAt || new Date();
+        }
+      });
+      record.markModified("directors");
     }
     const completeRes = await sendKycCompletedEmail(record).catch((err) => ({ success: false, error: err.message }));
     if (!completeRes.success) {
@@ -1058,11 +1264,13 @@ router.post("/:id/reject", requireAdmin, async (req, res) => {
     }
 
     record.applicationStatus = "rejected";
+    record.status = "rejected";
     record.rejectionReason = reason;
     record.rejectedBy = req.adminId;
     record.rejectedAt = new Date();
 
-    const rejEmailRes = await sendRejectionEmail(record, reason).catch((err) => ({ success: false, error: err.message }));
+    const baseUrl = process.env.APP_URL || process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
+    const rejEmailRes = await sendRejectionEmail(record, reason, baseUrl).catch((err) => ({ success: false, error: err.message }));
     if (!rejEmailRes.success) {
       record.emailError = rejEmailRes.error;
     } else {
@@ -1078,6 +1286,7 @@ router.post("/:id/reject", requireAdmin, async (req, res) => {
         kycStatus: record.kycStatus,
         agreementStatus: record.agreementStatus,
         status: record.status,
+        editUrl: rejEmailRes.editUrl,
       },
     });
   } catch (error) {

@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KYC Admin Panel</title>
   <link rel="stylesheet" href="admin.css" />
 </head>
+
 <body>
   <main class="admin-shell">
     <header class="admin-header">
@@ -15,7 +17,8 @@
         <h1>KYC Admin Panel</h1>
       </div>
       <div class="header-actions">
-        <button id="openSendInviteModalBtn" type="button" style="background:#0056b3; color:#fff; border:none; padding:9px 18px; border-radius:6px; font-weight:700; cursor:pointer; font-size:14px; display:inline-flex; align-items:center; gap:6px;">
+        <button id="openSendInviteModalBtn" type="button"
+          style="background:#0056b3; color:#fff; border:none; padding:9px 18px; border-radius:6px; font-weight:700; cursor:pointer; font-size:14px; display:inline-flex; align-items:center; gap:6px;">
           ➕ Add Director &amp; Send KYC
         </button>
         <a class="customer-link" href="/">Open Customer Form</a>
@@ -51,8 +54,13 @@
         <table>
           <thead>
             <tr>
-              <th>Customer</th><th>Identifier</th><th>KYC / Request ID</th><th>Reference ID</th>
-              <th>Status</th><th>Verification</th><th>Created</th><th>Actions</th>
+              <th>Customer</th>
+              <th>Identifier</th>
+              <th>Reference ID</th>
+              <th>Status</th>
+              <!-- <th>Verification</th> -->
+              <th>Created</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="recordsBody"></tbody>
@@ -64,56 +72,110 @@
 
   <dialog id="detailDialog" class="detail-dialog">
     <div class="dialog-header">
-      <div><p class="eyebrow">Submitted KYC</p><h2 id="detailTitle">KYC Details</h2></div>
+      <div>
+        <p class="eyebrow">Submitted KYC</p>
+        <h2 id="detailTitle">KYC Details</h2>
+      </div>
       <button class="icon-button" id="closeDialog" type="button" aria-label="Close">&times;</button>
     </div>
     <div id="detailContent" class="detail-content"></div>
   </dialog>
-  <dialog id="rejectDialog" class="reject-dialog">
+  <dialog id="rejectDialog" class="reject-dialog"
+    style="max-width:520px; width:92%; border-radius:10px; padding:0; border:none; box-shadow:0 12px 35px rgba(0,0,0,0.25);">
     <form method="dialog" id="rejectForm">
-      <div class="dialog-header"><div><p class="eyebrow">Admin action</p><h2>Reject KYC</h2></div><button class="icon-button" id="closeRejectDialog" type="button" aria-label="Close">&times;</button></div>
-      <div class="modal-body"><label for="rejectionReason">Rejection reason</label><textarea id="rejectionReason" rows="5" required maxlength="1000" placeholder="Enter the reason for rejection"></textarea><p class="modal-note">This rejection is stored locally. The supplied DigiO collection documents approval only; DigiO rejection support requires confirmation.</p></div>
-      <div class="modal-actions"><button class="secondary" id="cancelReject" type="button">Cancel</button><button id="confirmReject" type="submit">Reject KYC</button></div>
+      <div class="dialog-header"
+        style="background:#dc3545; color:#fff; padding:16px 20px; border-radius:10px 10px 0 0; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <p class="eyebrow"
+            style="color:#ffe5e5; margin:0; font-size:11px; text-transform:uppercase; letter-spacing:1px;">Admin Action
+          </p>
+          <h2 style="margin:2px 0 0 0; font-size:18px; color:#fff; font-weight:700;">✕ Reject KYC Application</h2>
+        </div>
+        <button class="icon-button" id="closeRejectDialog" type="button" aria-label="Close"
+          style="color:#fff; font-size:22px; cursor:pointer; background:none; border:none;">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:20px;">
+        <label for="rejectionReason"
+          style="display:block; font-weight:bold; font-size:13px; color:#333; margin-bottom:6px;">
+          Reason for Rejection *
+        </label>
+        <textarea id="rejectionReason" rows="5" required maxlength="1000"
+          placeholder="Please explain clearly why this application is rejected (this reason will be emailed to the applicant/director along with an Edit link)..."
+          style="width:100%; box-sizing:border-box; border:1px solid #ced4da; border-radius:6px; padding:10px; font-size:14px; font-family:inherit;"></textarea>
+        <p class="modal-note" style="margin:8px 0 0 0; font-size:12px; color:#666; line-height:1.4;">
+          ✉️ An automated email containing this rejection reason and a direct link to edit &amp; resubmit the pre-filled
+          KYC form will be sent to the director and applicant.
+        </p>
+      </div>
+      <div class="modal-actions" style="padding:0 20px 20px 20px; display:flex; justify-content:flex-end; gap:10px;">
+        <button class="secondary" id="cancelReject" type="button"
+          style="padding:8px 16px; border:1px solid #ccc; background:#f8f9fa; color:#333; border-radius:4px; font-weight:bold; cursor:pointer;">Cancel</button>
+        <button id="confirmReject" type="submit"
+          style="padding:8px 18px; border:none; background:#dc3545; color:#fff; border-radius:4px; font-weight:bold; cursor:pointer;">✕
+          Reject KYC &amp; Send Edit Link</button>
+      </div>
     </form>
   </dialog>
 
 
   <!-- Add Director & Send KYC Invitation Pop-up Modal -->
-  <dialog id="sendInviteDialog" class="reject-dialog" style="max-width:540px; width:92%; border-radius:12px; padding:0; border:none; box-shadow:0 10px 30px rgba(0,0,0,0.25);">
+  <dialog id="sendInviteDialog" class="reject-dialog"
+    style="max-width:540px; width:92%; border-radius:12px; padding:0; border:none; box-shadow:0 10px 30px rgba(0,0,0,0.25);">
     <form id="sendInviteForm">
-      <div class="dialog-header" style="background:#1f3b57; color:#fff; padding:16px 20px; border-radius:12px 12px 0 0; display:flex; justify-content:space-between; align-items:center;">
+      <div class="dialog-header"
+        style="background:#1f3b57; color:#fff; padding:16px 20px; border-radius:12px 12px 0 0; display:flex; justify-content:space-between; align-items:center;">
         <div>
-          <p class="eyebrow" style="color:#cce0ff; margin:0; font-size:11px; text-transform:uppercase; letter-spacing:1px;">Admin Action</p>
-          <h2 style="margin:2px 0 0 0; font-size:18px; color:#fff; font-weight:700;">➕ Add Director &amp; Send DigiO KYC</h2>
+          <p class="eyebrow"
+            style="color:#cce0ff; margin:0; font-size:11px; text-transform:uppercase; letter-spacing:1px;">Admin Action
+          </p>
+          <h2 style="margin:2px 0 0 0; font-size:18px; color:#fff; font-weight:700;">➕ Add Director &amp; Send DigiO KYC
+          </h2>
         </div>
-        <button class="icon-button" id="closeSendInviteDialog" type="button" aria-label="Close" style="color:#fff; font-size:22px; cursor:pointer; background:none; border:none;">&times;</button>
+        <button class="icon-button" id="closeSendInviteDialog" type="button" aria-label="Close"
+          style="color:#fff; font-size:22px; cursor:pointer; background:none; border:none;">&times;</button>
       </div>
       <div class="modal-body" style="padding:22px; display:flex; flex-direction:column; gap:14px;">
-        <p style="margin:0 0 4px 0; font-size:13px; color:#666;">Enter Director details below to generate and email the DigiO KYC link directly.</p>
-        
+        <p style="margin:0 0 4px 0; font-size:13px; color:#666;">Enter Director details below to generate and email the
+          DigiO KYC link directly.</p>
+
         <div>
-          <label for="inviteDirName" style="display:block; font-size:12px; font-weight:bold; color:#333; margin-bottom:4px;">Director Name *</label>
-          <input type="text" id="inviteDirName" required placeholder="Full Name" style="width:100%; padding:10px 12px; border:1px solid #ccc; border-radius:6px; font-size:14px; box-sizing:border-box;" />
+          <label for="inviteDirName"
+            style="display:block; font-size:12px; font-weight:bold; color:#333; margin-bottom:4px;">Director Name
+            *</label>
+          <input type="text" id="inviteDirName" required placeholder="Full Name"
+            style="width:100%; padding:10px 12px; border:1px solid #ccc; border-radius:6px; font-size:14px; box-sizing:border-box;" />
         </div>
 
         <div>
-          <label for="inviteDirEmail" style="display:block; font-size:12px; font-weight:bold; color:#333; margin-bottom:4px;">Director Email *</label>
-          <input type="email" id="inviteDirEmail" required placeholder="director@example.com" style="width:100%; padding:10px 12px; border:1px solid #ccc; border-radius:6px; font-size:14px; box-sizing:border-box;" />
+          <label for="inviteDirEmail"
+            style="display:block; font-size:12px; font-weight:bold; color:#333; margin-bottom:4px;">Director Email
+            *</label>
+          <input type="email" id="inviteDirEmail" required placeholder="director@example.com"
+            style="width:100%; padding:10px 12px; border:1px solid #ccc; border-radius:6px; font-size:14px; box-sizing:border-box;" />
         </div>
 
         <div>
-          <label for="inviteDirPhone" style="display:block; font-size:12px; font-weight:bold; color:#333; margin-bottom:4px;">Phone Number *</label>
-          <input type="tel" id="inviteDirPhone" required placeholder="+91 9876543210" style="width:100%; padding:10px 12px; border:1px solid #ccc; border-radius:6px; font-size:14px; box-sizing:border-box;" />
+          <label for="inviteDirPhone"
+            style="display:block; font-size:12px; font-weight:bold; color:#333; margin-bottom:4px;">Phone Number
+            *</label>
+          <input type="tel" id="inviteDirPhone" required placeholder="+91 9876543210"
+            style="width:100%; padding:10px 12px; border:1px solid #ccc; border-radius:6px; font-size:14px; box-sizing:border-box;" />
         </div>
 
         <div>
-          <label for="inviteEntityName" style="display:block; font-size:12px; font-weight:bold; color:#333; margin-bottom:4px;">Entity Name (Optional)</label>
-          <input type="text" id="inviteEntityName" placeholder="Corporate Entity Name" style="width:100%; padding:10px 12px; border:1px solid #ccc; border-radius:6px; font-size:14px; box-sizing:border-box;" />
+          <label for="inviteEntityName"
+            style="display:block; font-size:12px; font-weight:bold; color:#333; margin-bottom:4px;">Entity Name
+            (Optional)</label>
+          <input type="text" id="inviteEntityName" placeholder="Corporate Entity Name"
+            style="width:100%; padding:10px 12px; border:1px solid #ccc; border-radius:6px; font-size:14px; box-sizing:border-box;" />
         </div>
       </div>
-      <div class="modal-actions" style="padding:14px 22px 20px; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #eee;">
-        <button class="secondary" id="cancelSendInvite" type="button" style="padding:10px 18px; font-size:14px; font-weight:bold; border-radius:6px; cursor:pointer;">Cancel</button>
-        <button id="btnSendInvite" type="submit" style="background:#0056b3; color:#fff; border:none; padding:10px 20px; border-radius:6px; font-size:14px; font-weight:bold; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+      <div class="modal-actions"
+        style="padding:14px 22px 20px; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #eee;">
+        <button class="secondary" id="cancelSendInvite" type="button"
+          style="padding:10px 18px; font-size:14px; font-weight:bold; border-radius:6px; cursor:pointer;">Cancel</button>
+        <button id="btnSendInvite" type="submit"
+          style="background:#0056b3; color:#fff; border:none; padding:10px 20px; border-radius:6px; font-size:14px; font-weight:bold; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
           ✉️ Send DigiO KYC Link
         </button>
       </div>
@@ -121,41 +183,60 @@
   </dialog>
 
   <!-- DigiO Link Generator Pop-up Modal -->
-  <dialog id="digioLinkDialog" class="reject-dialog" style="max-width:560px; width:92%; border-radius:12px; padding:0; border:none; box-shadow:0 10px 30px rgba(0,0,0,0.25);">
-    <div class="dialog-header" style="background:#0056b3; color:#fff; padding:16px 20px; border-radius:12px 12px 0 0; display:flex; justify-content:space-between; align-items:center;">
+  <dialog id="digioLinkDialog" class="reject-dialog"
+    style="max-width:560px; width:92%; border-radius:12px; padding:0; border:none; box-shadow:0 10px 30px rgba(0,0,0,0.25);">
+    <div class="dialog-header"
+      style="background:#0056b3; color:#fff; padding:16px 20px; border-radius:12px 12px 0 0; display:flex; justify-content:space-between; align-items:center;">
       <div>
-        <p class="eyebrow" style="color:#cce0ff; margin:0; font-size:11px; text-transform:uppercase; letter-spacing:1px;">DigiO KYC Engine</p>
+        <p class="eyebrow"
+          style="color:#cce0ff; margin:0; font-size:11px; text-transform:uppercase; letter-spacing:1px;">DigiO KYC
+          Engine</p>
         <h2 style="margin:2px 0 0 0; font-size:18px; color:#fff; font-weight:700;">✨ DigiO KYC Link Generated!</h2>
       </div>
-      <button class="icon-button" id="closeDigioLinkDialog" type="button" aria-label="Close" style="color:#fff; font-size:22px; cursor:pointer; background:none; border:none;">&times;</button>
+      <button class="icon-button" id="closeDigioLinkDialog" type="button" aria-label="Close"
+        style="color:#fff; font-size:22px; cursor:pointer; background:none; border:none;">&times;</button>
     </div>
     <div class="modal-body" style="padding:22px;">
-      <div style="background:#f0f7ff; border-left:4px solid #0056b3; padding:12px 16px; margin-bottom:18px; border-radius:4px;">
-        <p style="margin:0; font-weight:bold; color:#0056b3; font-size:14px;" id="modalDirectorInfo">Director Name: -</p>
+      <div
+        style="background:#f0f7ff; border-left:4px solid #0056b3; padding:12px 16px; margin-bottom:18px; border-radius:4px;">
+        <p style="margin:0; font-weight:bold; color:#0056b3; font-size:14px;" id="modalDirectorInfo">Director Name: -
+        </p>
         <p style="margin:4px 0 0 0; font-size:13px; color:#555;" id="modalEntityInfo">Entity: -</p>
       </div>
 
-      <label style="display:block; font-size:12px; font-weight:bold; color:#333; margin-bottom:6px;">Custom KYC Form Link (with Document Uploads):</label>
+      <label style="display:block; font-size:12px; font-weight:bold; color:#333; margin-bottom:6px;">Custom KYC Form
+        Link (with Document Uploads):</label>
       <div style="display:flex; gap:8px; margin-bottom:16px;">
-        <input type="text" id="modalCustomKycUrl" readonly style="flex:1; padding:9px 12px; font-size:13px; border:1px solid #ccc; border-radius:6px; background:#fafafa;" />
-        <button type="button" id="btnCopyCustomUrl" style="background:#0056b3; color:#fff; border:none; padding:9px 16px; border-radius:6px; font-weight:bold; font-size:13px; cursor:pointer;">📋 Copy</button>
+        <input type="text" id="modalCustomKycUrl" readonly
+          style="flex:1; padding:9px 12px; font-size:13px; border:1px solid #ccc; border-radius:6px; background:#fafafa;" />
+        <button type="button" id="btnCopyCustomUrl"
+          style="background:#0056b3; color:#fff; border:none; padding:9px 16px; border-radius:6px; font-weight:bold; font-size:13px; cursor:pointer;">📋
+          Copy</button>
       </div>
 
-      <label style="display:block; font-size:12px; font-weight:bold; color:#333; margin-bottom:6px;">DigiO Official Gateway Link (KID):</label>
+      <label style="display:block; font-size:12px; font-weight:bold; color:#333; margin-bottom:6px;">DigiO Official
+        Gateway Link (KID):</label>
       <div style="display:flex; gap:8px; margin-bottom:20px;">
-        <input type="text" id="modalDigioUrl" readonly style="flex:1; padding:9px 12px; font-size:13px; border:1px solid #ccc; border-radius:6px; background:#fafafa;" />
-        <button type="button" id="btnCopyDigioUrl" style="background:#1f3b57; color:#fff; border:none; padding:9px 16px; border-radius:6px; font-weight:bold; font-size:13px; cursor:pointer;">📋 Copy</button>
+        <input type="text" id="modalDigioUrl" readonly
+          style="flex:1; padding:9px 12px; font-size:13px; border:1px solid #ccc; border-radius:6px; background:#fafafa;" />
+        <button type="button" id="btnCopyDigioUrl"
+          style="background:#1f3b57; color:#fff; border:none; padding:9px 16px; border-radius:6px; font-weight:bold; font-size:13px; cursor:pointer;">📋
+          Copy</button>
       </div>
 
       <div style="display:flex; gap:10px; justify-content:flex-end; border-top:1px solid #eee; padding-top:16px;">
-        <a id="modalOpenLinkBtn" href="#" target="_blank" style="background:#28a745; color:#fff; padding:10px 20px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:14px; display:inline-flex; align-items:center; gap:6px;">
+        <a id="modalOpenLinkBtn" href="#" target="_blank"
+          style="background:#28a745; color:#fff; padding:10px 20px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:14px; display:inline-flex; align-items:center; gap:6px;">
           ↗ Open KYC Link
         </a>
-        <button type="button" class="secondary" id="closeDigioLinkModalBtn" style="padding:10px 18px; font-size:14px; font-weight:bold; border-radius:6px; cursor:pointer;">Close</button>
+        <button type="button" class="secondary" id="closeDigioLinkModalBtn"
+          style="padding:10px 18px; font-size:14px; font-weight:bold; border-radius:6px; cursor:pointer;">Close</button>
       </div>
     </div>
   </dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="sweetalert2.all.min.js"></script>
   <script src="admin.js"></script>
 </body>
+
 </html>

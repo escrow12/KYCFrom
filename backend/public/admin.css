@@ -17,8 +17,8 @@ h1 { font-size: 28px; }
 .toolbar { display: flex; gap: 16px; align-items: end; margin-bottom: 12px; }
 .search-wrap { flex: 1; }
 .sort-wrap { width: 230px; }.admin-key-wrap { width: 260px; }
-.toolbar label span { display: block; margin-bottom: 6px; color: #607080; font-size: 12px; font-weight: 700; }
 input, select { width: 100%; min-height: 38px; padding: 8px 10px; border: 1px solid #bfc8d1; border-radius: 4px; background: #fff; color: #17202a; }
+input[type="radio"], input[type="checkbox"] { width: auto; min-height: auto; }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; min-width: 1250px; border-collapse: collapse; font-size: 12px; }
 th, td { padding: 11px 9px; border-bottom: 1px solid #e4e9ed; text-align: left; vertical-align: top; }
@@ -56,3 +56,51 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .button-link { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; padding: 8px 10px; border-radius: 4px; font-weight: 700; font-size: 12px; }
 .action-btn-primary { background: #28a745 !important; color: #fff !important; }
 @media (max-width: 760px) { .admin-shell { padding: 16px; } .admin-header, .toolbar { align-items: stretch; flex-direction: column; } .sort-wrap { width: 100%; } .summary-grid { grid-template-columns: repeat(2, 1fr); } .detail-grid { grid-template-columns: 1fr; } .detail-item, .detail-item:nth-child(even) { border-right: 0; } }
+
+/* SweetAlert2 Admin Theme Customizations */
+.swal2-popup {
+  font-family: inherit !important;
+  border-radius: 12px !important;
+  box-shadow: 0 14px 40px rgba(23, 32, 42, 0.2) !important;
+}
+
+.swal2-styled.swal2-confirm {
+  font-weight: 700 !important;
+  border-radius: 6px !important;
+  padding: 10px 22px !important;
+  font-size: 14px !important;
+}
+
+.swal2-styled.swal2-cancel {
+  font-weight: 700 !important;
+  border-radius: 6px !important;
+  padding: 10px 22px !important;
+  font-size: 14px !important;
+  background-color: #6c757d !important;
+}
+
+.swal2-icon.swal2-error {
+  border-color: #dc3545 !important;
+  color: #dc3545 !important;
+}
+
+.swal2-icon.swal2-success {
+  border-color: #28a745 !important;
+  color: #28a745 !important;
+}
+
+dialog .swal2-container.swal2-top-end,
+dialog .swal2-container.swal2-top-right {
+  position: absolute !important;
+  top: 10px !important;
+  right: 15px !important;
+  z-index: 1000000 !important;
+  pointer-events: none !important;
+}
+
+dialog .swal2-container.swal2-top-end .swal2-popup,
+dialog .swal2-container.swal2-top-right .swal2-popup {
+  pointer-events: auto !important;
+}
+
+

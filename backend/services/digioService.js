@@ -205,7 +205,49 @@ function findValue(value, names) {
   return undefined;
 }
 
-function extractIdentifiers(data, customBaseUrl) {
+function formatGwtCode(token) {
+  if (!token) return "GWT" + Math.floor(10000 + Math.random() * 90000);
+  const str = String(token).trim();
+  const upper = str.toUpperCase();
+  if (upper.startsWith("GWT")) {
+    const afterGwt = str.slice(3);
+    const digitsOnly = afterGwt.replace(/\D/g, "");
+    if (digitsOnly.length >= 5) {
+      return "GWT" + digitsOnly.slice(0, 5);
+    }
+    return str.slice(0, 8);
+  }
+  const digits = str.replace(/\D/g, "");
+  if (digits.length >= 5) {
+    return "GWT" + digits.slice(0, 5);
+  }
+  return "GWT" + str.padEnd(5, "0").slice(0, 5);
+}
+
+function formatDigioKycLink(url, kid, token, email = "") {
+  const gatewayHost = (process.env.BASE_URL || "").includes("ext.digio.in") ? "https://ext.digio.in" : "https://app.digio.in";
+  if (url && typeof url === "string") {
+    const match = url.match(/\/gateway\/login\/(KID[A-Z0-9]+)\/([A-Z0-9]+)(?:\/([^/?#]+))?/i);
+    if (match) {
+      const parsedKid = match[1];
+      const parsedToken = match[2];
+      const parsedEmail = match[3] || email || "";
+      const gwtCode = formatGwtCode(parsedToken);
+      return parsedEmail
+        ? `${gatewayHost}/#/gateway/login/${parsedKid}/${gwtCode}/${parsedEmail}`
+        : `${gatewayHost}/#/gateway/login/${parsedKid}/${gwtCode}`;
+    }
+  }
+  if (kid) {
+    const gwtCode = formatGwtCode(token);
+    return email
+      ? `${gatewayHost}/#/gateway/login/${kid}/${gwtCode}/${email}`
+      : `${gatewayHost}/#/gateway/login/${kid}/${gwtCode}`;
+  }
+  return url;
+}
+
+function extractIdentifiers(data, customBaseUrl = null, defaultIdentifier = "") {
   if (!data || typeof data !== "object") {
     return {
       kid: undefined,
@@ -242,7 +284,7 @@ function extractIdentifiers(data, customBaseUrl) {
     kid = target.id.trim();
   } else if (target.access_token && typeof target.access_token === "object" && typeof target.access_token.entity_id === "string" && target.access_token.entity_id.trim().startsWith("KID")) {
     kid = target.access_token.entity_id.trim();
-  } else if (typeof target.id === "string" && target.id.trim()) {
+  } else if (typeof target.id === "string" && target.id.trim() && !target.id.trim().startsWith("DID")) {
     kid = target.id.trim();
   } else {
     kid = findValue(target, ["kid", "kyc_id", "kycid"]);
@@ -319,14 +361,24 @@ function extractIdentifiers(data, customBaseUrl) {
 
   // 7. Access Link:
   let accessLink = undefined;
+  const configuredBase = customBaseUrl || process.env.BASE_URL || "";
+  const gatewayHost = configuredBase.includes("ext.digio.in") ? "https://ext.digio.in" : "https://app.digio.in";
+  const emailOrIdentifier = target.customer_identifier || target.customeridentifier || target.email || target.identifier || defaultIdentifier || "";
   const directLink = target.access_url || target.accessurl || target.kyc_url || target.kycurl || target.redirect_url || target.redirecturl || target.signing_url || target.signingurl || target.link;
-  if (typeof directLink === "string" && directLink.trim()) {
-    accessLink = directLink.trim();
-  } else if (kid) {
-    const configuredBase = customBaseUrl || process.env.BASE_URL || "";
-    const gatewayHost = configuredBase.includes("ext.digio.in") ? "https://ext.digio.in" : "https://app.digio.in";
-    const tokenPart = tokenId || (target.customer_identifier ? encodeURIComponent(target.customer_identifier) : "");
-    accessLink = tokenPart ? `${gatewayHost}/#/gateway/login/${kid}/${tokenPart}` : `${gatewayHost}/#/gateway/login/${kid}`;
+
+  if (kid) {
+    const gwtCode = tokenId ? formatGwtCode(tokenId) : "";
+    if (gwtCode && emailOrIdentifier) {
+      accessLink = `${gatewayHost}/#/gateway/login/${kid}/${gwtCode}/${emailOrIdentifier}`;
+    } else if (gwtCode) {
+      accessLink = `${gatewayHost}/#/gateway/login/${kid}/${gwtCode}`;
+    } else if (emailOrIdentifier) {
+      accessLink = `${gatewayHost}/#/gateway/login/${kid}/${emailOrIdentifier}`;
+    } else {
+      accessLink = `${gatewayHost}/#/gateway/login/${kid}`;
+    }
+  } else if (typeof directLink === "string" && directLink.trim()) {
+    accessLink = formatDigioKycLink(directLink.trim(), null, tokenId, emailOrIdentifier);
   }
 
   // 8. Status:
@@ -514,6 +566,16 @@ async function regenerateToken(entityId) {
   return assertSuccessful(await request("POST", "/user/auth/generate_token", { entity_id: entityId.trim() }, undefined, config));
 }
 
+async function regenerateSigningToken(documentId) {
+  if (!documentId || typeof documentId !== "string" || !documentId.trim()) {
+    const error = new Error("DigiSign document_id is required to generate token.");
+    error.code = "DIGISIGN_MISSING_DOCUMENT_ID";
+    throw error;
+  }
+  const config = getSignConfig();
+  return assertSuccessful(await request("POST", "/user/auth/generate_token", { entity_id: documentId.trim() }, undefined, config));
+}
+
 module.exports = {
   createRequest,
   createSigningRequest,
@@ -525,7 +587,10 @@ module.exports = {
   manageApproval,
   reattempt,
   regenerateToken,
+  regenerateSigningToken,
   extractIdentifiers,
+  formatGwtCode,
+  formatDigioKycLink,
   extractStatus,
   safeResponseSummary,
   redactSecrets,

@@ -48,6 +48,22 @@ test("extractIdentifiers correctly parses actual DigiO with_template response", 
   assert.equal(parsed.status, "requested");
 });
 
+test("formatGwtCode formats GWT token to 5 digits and accessLink includes email", () => {
+  const rawResponse = {
+    id: "KID2610151526265995TUSTFQZ558Z14",
+    customer_identifier: "director@example.com",
+    access_token: {
+      id: "GWT2610151640586676G3HKQPTJH2SSS",
+    },
+  };
+  const parsed = digioService.extractIdentifiers(rawResponse);
+  assert.equal(digioService.formatGwtCode("GWT2610151640586676G3HKQPTJH2SSS"), "GWT26101");
+  assert.equal(
+    parsed.accessLink,
+    "https://app.digio.in/#/gateway/login/KID2610151526265995TUSTFQZ558Z14/GWT26101/director@example.com"
+  );
+});
+
 test("extractIdentifiers correctly parses actual DigiO details response with RID and actionIds", () => {
   const rawResponse = {
     id: "KID260929124452422MR8NM444ESPT87",

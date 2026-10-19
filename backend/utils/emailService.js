@@ -1,5 +1,6 @@
 require("dotenv").config();
 const nodemailer = require("nodemailer");
+const digio = require("../services/digioService");
 
 function createTransporter() {
   require("dotenv").config(); // Refresh env variables
@@ -90,46 +91,82 @@ async function sendApprovalEmail(record) {
   }
 }
 
+function escapeHtml(value) {
+  return String(value || "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
+}
+
 /**
- * Sends an email when a KYC application is REJECTED by Admin.
+ * Sends an email when a KYC application is REJECTED by Admin,
+ * providing the rejection reason and a direct "Edit & Resubmit Form" link.
  */
-async function sendRejectionEmail(record, reason) {
-  const recipient = getRecipientEmail(record);
-  if (!recipient) {
+async function sendRejectionEmail(record, reason, baseUrl) {
+  const entityName = record.entityName || "Your Entity";
+  const rejectionReason = reason || record.rejectionReason || "Requirements not met.";
+  const host = baseUrl || process.env.APP_URL || process.env.APP_BASE_URL || "http://localhost:5001";
+  const cleanHost = String(host).replace(/\/+$/, "");
+  const editUrl = `${cleanHost}/index.html?kycId=${encodeURIComponent(record._id)}&mode=edit`;
+
+  const primaryRecipient = getRecipientEmail(record);
+  const directorEmails = (record.directors || [])
+    .map((d) => String(d.email || "").trim().toLowerCase())
+    .filter((email) => email && email.includes("@"));
+
+  const allRecipients = Array.from(new Set([primaryRecipient, ...directorEmails].filter(Boolean)));
+  if (!allRecipients.length) {
     console.warn(`[EMAIL WARNING] Cannot send rejection email: No recipient email found for KYC record ${record._id}`);
-    return { success: false, error: "No recipient email found on application." };
+    return { success: false, error: "No recipient email found on application or directors.", editUrl };
   }
 
   const transporter = createTransporter();
   if (!transporter) {
-    const errMsg = `SMTP credentials not configured. Skipping rejection email to ${recipient}`;
-    return { success: false, error: errMsg };
+    const errMsg = `SMTP credentials not configured. Skipping rejection email to ${allRecipients.join(", ")}`;
+    return { success: false, error: errMsg, editUrl };
   }
 
-  const entityName = record.entityName || "Your Entity";
-  const rejectionReason = reason || record.rejectionReason || "Requirements not met.";
-
+  const toAddress = allRecipients.join(", ");
   const mailOptions = {
     from: getFromAddress(),
-    to: recipient,
-    subject: `KYC Application Status Update - ${entityName}`,
+    to: toAddress,
+    subject: `Action Required: KYC Application Rejected - ${entityName}`,
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-        <h2 style="color: #dc3545; margin-top: 0;">KYC Application Status Update</h2>
-        <p>Dear Customer,</p>
-        <p>Thank you for submitting your KYC application for <strong>${entityName}</strong>.</p>
-        
-        <div style="background-color: #fdf2f2; padding: 15px; border-left: 4px solid #dc3545; margin: 20px 0;">
-          <p style="margin: 0; font-weight: bold; color: #721c24;">Status: Rejected</p>
-          <p style="margin: 10px 0 0 0; font-size: 14px; color: #333;"><strong>Reason for Rejection:</strong></p>
-          <p style="margin: 5px 0 0 0; font-size: 14px; color: #555; font-style: italic;">"${rejectionReason}"</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 8px; background: #ffffff;">
+        <div style="border-bottom: 2px solid #dc3545; padding-bottom: 12px; margin-bottom: 20px;">
+          <h2 style="color: #dc3545; margin: 0; font-size: 20px;">KYC Application Status: Rejected</h2>
+          <p style="margin: 4px 0 0 0; color: #666; font-size: 13px;">Action required to update and resubmit your details</p>
         </div>
 
-        <p>Please review the reason above and make the necessary corrections before submitting a fresh application or contacting our support team.</p>
+        <p style="font-size: 14px; color: #333;">Dear Customer / Director,</p>
+        <p style="font-size: 14px; color: #333;">
+          Thank you for submitting your KYC application for <strong>${escapeHtml(entityName)}</strong>. Our compliance team has reviewed your application and noted items that require your correction.
+        </p>
+        
+        <div style="background-color: #fdf2f2; padding: 16px; border-left: 4px solid #dc3545; border-radius: 4px; margin: 20px 0;">
+          <p style="margin: 0; font-size: 13px; font-weight: bold; color: #721c24; text-transform: uppercase; letter-spacing: 0.5px;">Reason for Rejection:</p>
+          <p style="margin: 8px 0 0 0; font-size: 15px; color: #222; font-style: italic; line-height: 1.4;">"${escapeHtml(rejectionReason)}"</p>
+        </div>
 
-        <p>If you need assistance, please contact our support desk.</p>
-        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-        <p style="font-size: 12px; color: #888;">Escrowind Private Limited — Compliance & Operations Team</p>
+        <div style="background: #f8fbff; border: 1px solid #cce5ff; border-radius: 6px; padding: 16px; margin: 20px 0;">
+          <h3 style="margin: 0 0 8px 0; color: #004085; font-size: 14px;">Next Steps:</h3>
+          <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #444; line-height: 1.5;">
+            <li>Click the <strong>"Edit &amp; Resubmit KYC Form"</strong> button below to open your pre-filled application.</li>
+            <li>Correct the details or documents specified in the reason above.</li>
+            <li>Submit the form again so our compliance team can review and approve it.</li>
+          </ol>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${editUrl}" target="_blank" style="background-color: #0056b3; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: bold; font-size: 15px; display: inline-block; letter-spacing: 0.5px; box-shadow: 0 4px 6px rgba(0,86,179,0.25);">
+            ✏️ Edit &amp; Resubmit KYC Form
+          </a>
+        </div>
+
+        <p style="font-size: 12px; color: #777; text-align: center; margin-top: 15px;">
+          Or copy and paste this link into your browser:<br/>
+          <a href="${editUrl}" style="color: #0056b3; word-break: break-all;">${editUrl}</a>
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #eee; margin: 25px 0 15px 0;" />
+        <p style="font-size: 12px; color: #888; margin: 0;">Escrowind Private Limited — Compliance &amp; Operations Team</p>
       </div>
     `,
   };
@@ -138,14 +175,15 @@ async function sendRejectionEmail(record, reason) {
     const info = await transporter.sendMail(mailOptions);
     console.log(`\n==================================================`);
     console.log(`[EMAIL SUCCESS] Rejection email sent successfully!`);
-    console.log(`Recipient: ${recipient}`);
+    console.log(`Recipients: ${toAddress}`);
     console.log(`Rejection Reason: ${rejectionReason}`);
+    console.log(`Edit URL: ${editUrl}`);
     console.log(`Message ID: ${info.messageId}`);
     console.log(`==================================================\n`);
-    return { success: true, messageId: info.messageId };
+    return { success: true, messageId: info.messageId, editUrl };
   } catch (error) {
-    console.error(`[EMAIL ERROR] Failed to send rejection email to ${recipient}:`, error.message);
-    return { success: false, error: error.message };
+    console.error(`[EMAIL ERROR] Failed to send rejection email to ${toAddress}:`, error.message);
+    return { success: false, error: error.message, editUrl };
   }
 }
 
@@ -167,7 +205,10 @@ async function sendDirectorKycEmail(director, record) {
 
   const entityName = record.entityName || "Your Entity";
   const directorName = director.name || "Director";
-  const kycLink = director.digio?.accessLink || `https://app.digio.in/#/gateway/login/${director.digio?.kid || ""}`;
+  const directorEmail = String(director.email || recipient || "").trim();
+  const kycLink = digio.formatDigioKycLink
+    ? digio.formatDigioKycLink(director.digio?.accessLink, director.digio?.kid, director.digio?.accessToken, directorEmail)
+    : (director.digio?.accessLink || `https://app.digio.in/#/gateway/login/${director.digio?.kid || ""}`);
 
   const mailOptions = {
     from: getFromAddress(),
@@ -185,9 +226,9 @@ async function sendDirectorKycEmail(director, record) {
           <p style="margin: 5px 0 0 0; font-size: 14px; color: #555;">KYC Reference: <code>${director.digio?.referenceId || director.digio?.kid || "N/A"}</code></p>
         </div>
 
-        ${director.digio?.accessLink ? `
+        ${kycLink ? `
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${director.digio.accessLink}" target="_blank" style="background-color: #1f3b57; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">
+          <a href="${kycLink}" target="_blank" style="background-color: #1f3b57; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">
             Complete Director KYC Now
           </a>
         </div>

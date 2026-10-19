@@ -18,6 +18,7 @@ const toast = document.getElementById("toast");
 let currentPage = 1;
 let searchTimer;
 let pendingRejectId = null;
+let currentRecords = [];
 
 const fields = {
   "SECTION A": [
@@ -54,32 +55,131 @@ function statusBadge(value) { const status = String(value || "pending"); const c
 function customerIdentifier(record) { return record.digio?.customerIdentifier || record.email || record.authSignatoryEmail || "N/A"; }
 function requestIdentifier(record) { return record.digio?.kid || record.digio?.requestId || "N/A"; }
 function referenceIdentifier(record) { return record.digio?.referenceId || record.corporateIdOrSapId || record._id; }
-function showToast(message, type = "success") { toast.textContent = message; toast.className = `toast visible ${type}`; window.clearTimeout(showToast.timer); showToast.timer = window.setTimeout(() => { toast.className = "toast"; }, 3500); }
+function showToast(message, type = "success") {
+  const isError = type === "error";
+  const isInfo = type === "info";
+  if (toast) {
+    toast.textContent = message;
+    toast.className = `toast visible ${type}`;
+    window.clearTimeout(showToast.timer);
+    showToast.timer = window.setTimeout(() => {
+      toast.className = "toast";
+    }, 3500);
+  }
+
+  if (window.Swal) {
+    const activeTarget = (detailDialog && detailDialog.open) ? detailDialog : (rejectDialog && rejectDialog.open) ? rejectDialog : (sendInviteDialog && sendInviteDialog.open) ? sendInviteDialog : document.body;
+    Swal.fire({
+      toast: true,
+      target: activeTarget,
+      position: "top-end",
+      icon: isError ? "error" : isInfo ? "info" : "success",
+      iconColor: isError ? "#dc3545" : isInfo ? "#0056b3" : "#28a745",
+      title: message,
+      showConfirmButton: false,
+      timer: 3500,
+      timerProgressBar: true,
+      background: isError ? "#fff5f5" : isInfo ? "#eef6ff" : "#f6fdf8",
+      color: isError ? "#721c24" : isInfo ? "#004085" : "#155724",
+    });
+  }
+}
+
+async function showConfirmDialog({
+  title = "Are you sure?",
+  text = "",
+  confirmButtonText = "Confirm",
+  cancelButtonText = "Cancel",
+  confirmButtonColor = "#28a745",
+  cancelButtonColor = "#6c757d",
+  icon = "question",
+  iconColor = undefined,
+}) {
+  if (window.Swal) {
+    const result = await Swal.fire({
+      title,
+      text,
+      icon,
+      iconColor: iconColor || confirmButtonColor,
+      showCancelButton: true,
+      confirmButtonColor,
+      cancelButtonColor,
+      confirmButtonText,
+      cancelButtonText,
+      reverseButtons: true,
+      focusCancel: false,
+    });
+    return result.isConfirmed;
+  }
+  return window.confirm(text || title);
+}
+
+// Override default window.alert to always use SweetAlert2
+window.alert = function (message) {
+  if (window.Swal) {
+    Swal.fire({
+      icon: "info",
+      title: "Notice",
+      text: String(message),
+      confirmButtonColor: "#0056b3",
+      confirmButtonText: "OK",
+    });
+  }
+};
+
 function pdfUrl(id) { return `/api/kyc/${encodeURIComponent(id)}/pdf`; }
 function downloadPdf(id) {
-  const link = document.createElement("a"); link.href = pdfUrl(id); link.download = `KYC-${id}.pdf`; document.body.appendChild(link); link.click(); link.remove();
+  try {
+    const link = document.createElement("a");
+    link.href = pdfUrl(id);
+    link.download = `KYC-${id}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showToast("KYC PDF download initiated.");
+  } catch (e) {
+    showToast("PDF Download Error: " + e.message, "error");
+  }
 }
-function downloadAgreement(id) {
-  const link = document.createElement("a"); link.href = `/api/admin/kyc/${encodeURIComponent(id)}/agreement/download`; link.download = `Signed_Agreement_${id}.pdf`; document.body.appendChild(link); link.click(); link.remove();
-}
+// function downloadAgreement(id) {
+//   try {
+//     const link = document.createElement("a");
+//     link.href = `/api/admin/kyc/${encodeURIComponent(id)}/agreement/download`;
+//     link.download = `Signed_Agreement_${id}.pdf`;
+//     document.body.appendChild(link);
+//     link.click();
+//     link.remove();
+//     // showToast("Signed Agreement download initiated.");
+//   } catch (e) {
+//     showToast("Agreement Download Error: " + e.message, "error");
+//   }
+// }
 function actionButtons(record) {
   const id = record._id;
   const appStatus = record.applicationStatus || (record.status === "rejected" ? "rejected" : record.status === "pending" ? "pending" : "approved");
+  const kycStatus = record.kycStatus || (record.directors?.every((d) => d.status === "completed") ? "completed" : record.directors?.some((d) => ["requested", "completed"].includes(d.status)) ? "in_progress" : "not_started");
   const agrStatus = record.agreementStatus || (record.agreement?.status === "signed" || record.status === "completed" ? "signed" : record.agreement?.status === "sent" ? "sent" : "not_started");
+  const isKycCompleted = (record.directors && record.directors.length > 0)
+    ? record.directors.every((d) => d.status === "completed")
+    : kycStatus === "completed";
+
+  const isKycApproved = appStatus === "approved" || kycStatus === "completed" || record.status === "approved";
+
+  const isAgrCompleted = agrStatus === "signed" || record.agreement?.status === "signed" || record.status === "completed" || record.status === "agreement_signed";
 
   let specificActions = "";
   if (appStatus === "pending") {
     specificActions = `<button data-action="approve" data-id="${escapeHtml(id)}">Approve</button><button class="danger" data-action="reject" data-id="${escapeHtml(id)}">Reject</button>`;
-  } else if (appStatus === "approved") {
+  } else if (isKycApproved && !isAgrCompleted) {
     if (agrStatus === "not_started") {
-      specificActions = `<button style="background:#28a745;color:#fff;" data-action="agreement" data-id="${escapeHtml(id)}">Send Agreement</button>`;
-    } else if (agrStatus === "sent") {
-      specificActions = `<button data-action="sync-agreement" data-id="${escapeHtml(id)}">Check Signing</button>`;
-    } else if (agrStatus === "signed") {
-      specificActions = `<button class="secondary" data-action="download-agreement" data-id="${escapeHtml(id)}">Signed Agreement</button>`;
+      if (isKycCompleted) {
+        specificActions = `<button style="background:#28a745;color:#fff;" data-action="agreement" data-id="${escapeHtml(id)}">Send Agreement</button>`;
+      } else {
+        specificActions = `<button disabled style="background:#b0bec5;color:#fff;cursor:not-allowed;opacity:0.7;" title="Director KYC must be completed before sending Agreement">Send Agreement</button>`;
+      }
     }
   }
-  return `<div class="action-group"><button data-action="view" data-id="${escapeHtml(id)}">View Details</button><button class="secondary" data-action="open-digio-link-modal" data-id="${escapeHtml(id)}">🔗 DigiO Link</button>${specificActions}<button class="secondary" data-action="download" data-id="${escapeHtml(id)}">PDF</button></div>`;
+  return `<div class="action-group"><button data-action="view" data-id="${escapeHtml(id)}">View Details</button>${specificActions}<button class="secondary" data-action="download" data-id="${escapeHtml(id)}">PDF</button></div>`;
 }
 
 function renderTable(records) {
@@ -95,7 +195,6 @@ function renderTable(records) {
         ${hasEmailErr ? `<div style="font-size:11px;color:#d9534f;margin-top:2px;">⚠️ Email Warning</div>` : ""}
       </td>
       <td>${display(customerIdentifier(record))}</td>
-      <td>${display(requestIdentifier(record))}</td>
       <td>${display(referenceIdentifier(record))}</td>
       <td>
         <div style="font-size:11px;display:flex;flex-direction:column;gap:2px;">
@@ -104,7 +203,6 @@ function renderTable(records) {
           <div>Agr: ${statusBadge(agrStatus)}</div>
         </div>
       </td>
-      <td>${statusBadge(record.digio?.status || "not synced")}</td>
       <td>${display(record.createdAt, true)}</td>
       <td>${actionButtons(record)}</td>
     </tr>`;
@@ -126,6 +224,7 @@ async function loadRecords() {
     const response = await fetch(`/api/admin/kyc?${params}`); const result = await response.json();
     if (response.status === 401) { window.location.replace("/adminlogin.html"); return; }
     if (!response.ok || !result.success) throw new Error(result.message || "Unable to load records");
+    currentRecords = result.data || [];
     renderTable(result.data); renderPagination(result.pagination);
     document.getElementById("totalCount").textContent = result.summary.total; document.getElementById("todayCount").textContent = result.summary.today; document.getElementById("weekCount").textContent = result.summary.week; document.getElementById("monthCount").textContent = result.summary.month;
     listStatus.textContent = `${result.pagination.total} submission${result.pagination.total === 1 ? "" : "s"}`;
@@ -145,6 +244,10 @@ function renderDetail(record) {
   const kycStatus = record.kycStatus || (record.directors?.every((d) => d.status === "completed") ? "completed" : record.directors?.some((d) => ["requested", "completed"].includes(d.status)) ? "in_progress" : "not_started");
   const agrStatus = record.agreementStatus || record.agreement?.status || "not_started";
   const isDone = appStatus === "approved" && kycStatus === "completed" && agrStatus === "signed";
+  const isAppApproved = appStatus === "approved";
+  const isAllDirectorsCompleted = (record.directors && record.directors.length > 0)
+    ? record.directors.every((d) => d.status === "completed")
+    : kycStatus === "completed";
 
   const workflowStepper = `
     <div class="workflow-stepper" style="display:flex;gap:6px;align-items:center;margin-bottom:16px;background:#f5f8fa;padding:12px;border-radius:8px;border:1px solid #dce4ec;font-size:12px;overflow-x:auto;">
@@ -166,8 +269,14 @@ function renderDetail(record) {
     </div>
   ` : "";
 
+  const isRecordAgrCompleted = agrStatus === "signed" || record.agreement?.status === "signed" || record.status === "completed" || record.status === "agreement_signed";
+
   const directorRows = (record.directors || []).map((director) => {
     const isCompleted = director.status === "completed";
+    const dirAgrStatus = director.agreement?.status || (record.agreement?.signers?.find((s) => s.email && s.email.toLowerCase() === (director.email || "").toLowerCase())?.status === "signed" ? "signed" : record.agreement?.documentId && record.agreement?.signers?.some((s) => s.email && s.email.toLowerCase() === (director.email || "").toLowerCase()) ? "sent" : "not_started");
+    const isAgrSent = dirAgrStatus === "sent";
+    const isAgrSigned = dirAgrStatus === "signed" || (isRecordAgrCompleted && record.agreement?.selectedDirectorId && String(record.agreement.selectedDirectorId) === String(director._id));
+
     return `<tr>
     <td><strong>${display(director.name)}</strong></td>
     <td>${display(director.email)}</td>
@@ -176,26 +285,38 @@ function renderDetail(record) {
     <td>
       <div><strong>KID:</strong> <code>${display(director.digio?.kid || "Not Generated")}</code></div>
       ${director.digio?.rid ? `<div style="font-size:11px;color:#555;"><strong>RID:</strong> <code>${display(director.digio.rid)}</code></div>` : ""}
+      ${director.agreement?.documentId ? `<div style="font-size:11px;color:#17a2b8;margin-top:2px;"><strong>Agr Doc:</strong> <code>${display(director.agreement.documentId)}</code></div>` : ""}
       ${director.rejectionReason ? `<div style="font-size:11px;color:#b02a37;margin-top:2px;">⚠️ ${escapeHtml(director.rejectionReason)}</div>` : ""}
       ${director.emailError ? `<div style="font-size:11px;color:#dc3545;margin-top:2px;">⚠️ Email Failed: ${escapeHtml(director.emailError)}</div>` : ""}
+      ${director.agreement?.emailError ? `<div style="font-size:11px;color:#dc3545;margin-top:2px;">⚠️ Agr Email Failed: ${escapeHtml(director.agreement.emailError)}</div>` : ""}
     </td>
     <td>
       <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
-        ${!isCompleted ? `<button style="background:#28a745;color:#fff;" data-action="send-director-kyc" data-id="${escapeHtml(record._id)}" data-director-id="${escapeHtml(director._id)}">Send KYC</button>` : `<button style="background:#28a745;color:#fff;" data-action="agreement" data-id="${escapeHtml(record._id)}">Send Agreement</button>`}
-        <button data-action="sync-director" data-id="${escapeHtml(record._id)}" data-director-id="${escapeHtml(director._id)}">Sync DigiO</button>
-        ${!isCompleted ? `<button class="secondary" data-action="approve-director" data-id="${escapeHtml(record._id)}" data-director-id="${escapeHtml(director._id)}">Approve KYC</button>` : ""}
-        ${director.digio?.accessLink ? `<a href="${escapeHtml(director.digio.accessLink)}" target="_blank" style="padding:4px 8px;font-size:12px;background:#e9f0f8;border-radius:4px;text-decoration:none;color:#1f3b57;font-weight:bold;">KYC Link ↗</a>` : ""}
+        ${!isCompleted ? `<button ${!isAppApproved ? 'disabled style="background:#b0bec5;color:#fff;cursor:not-allowed;opacity:0.7;" title="Application form details must be approved first"' : 'style="background:#28a745;color:#fff;"'} data-action="send-director-kyc" data-id="${escapeHtml(record._id)}" data-director-id="${escapeHtml(director._id)}">${director.digio?.kid ? "Resend KYC" : "Send KYC"}</button>` : `
+          ${isAgrSigned ? `<span style="color:#28a745;font-weight:bold;font-size:12px;padding:4px 8px;background:#e8f5e9;border-radius:4px;">✓ Agreement Signed</span>` : `
+            ${isRecordAgrCompleted ? `<span style="color:#28a745;font-size:12px;padding:4px 8px;background:#e8f5e9;border-radius:4px;font-weight:600;">✓ Completed</span>` : `
+              <button style="${isAgrSent ? 'background:#17a2b8' : 'background:#28a745'};color:#fff;font-weight:bold;" data-action="send-director-agreement" data-id="${escapeHtml(record._id)}" data-director-id="${escapeHtml(director._id)}" title="${isAgrSent ? 'Resend Agreement to this Director' : 'Send Agreement to this Director'}">${isAgrSent ? "Resend Agreement" : "Send Agreement"}</button>
+            `}
+          `}
+        `}
         <button type="button" class="danger" style="padding:4px 8px;font-size:12px;font-weight:bold;" data-action="delete-director" data-id="${escapeHtml(record._id)}" data-director-id="${escapeHtml(director._id)}" title="Remove Director">[−]</button>
       </div>
     </td>
   </tr>`;
   }).join("");
 
+  const directorsNotice = !isAppApproved ? `
+    <div style="background:#fff3cd;border:1px solid #ffeeba;color:#856404;padding:8px 12px;border-radius:4px;font-size:12px;margin-bottom:12px;">
+      ⚠️ <strong>Action Required:</strong> Please approve the application form details above (Step 2) before initiating Director KYC or sending Agreements.
+    </div>
+  ` : "";
+
   const directorsHtml = `
     <section class="detail-section">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #1f3b57;">
-        <h3 style="margin:0;border:none;padding:0;">REQUIRED DIRECTORS FOR KYC (${statusBadge(kycStatus)})</h3>
+        <h3 style="margin:0;border:none;padding:0;">REQUIRED DIRECTORS FOR KYC</h3>
       </div>
+      ${directorsNotice}
       <table class="detail-table">
         <thead>
           <tr>
@@ -212,24 +333,43 @@ function renderDetail(record) {
     </section>
   `;
 
-  const agreementAction = appStatus === "approved" && agrStatus !== "signed"
-    ? `<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;"><button style="background:#28a745;color:#fff;padding:8px 16px;font-weight:bold;font-size:14px;" data-action="agreement" data-id="${escapeHtml(record._id)}">${agrStatus === "sent" ? "Resend Master Agent Agreement" : "Send Master Agent Agreement for E-Signing"}</button>${agrStatus === "sent" ? `<button data-action="sync-agreement" data-id="${escapeHtml(record._id)}">Check Signing Status</button><button class="secondary" data-action="approve-agreement" data-id="${escapeHtml(record._id)}">Mark as Signed</button><button class="secondary" data-action="download-agreement" data-id="${escapeHtml(record._id)}">Download Agreement PDF</button>` : ""}</div>`
-    : agrStatus === "signed"
-    ? `<div style="margin-top:12px;"><button class="secondary" data-action="download-agreement" data-id="${escapeHtml(record._id)}">Download Signed Agreement PDF</button></div>`
-    : "";
+  let workflowStepAction = "";
+  if (appStatus === "pending") {
+    workflowStepAction = `
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button style="background:#28a745;color:#fff;padding:8px 16px;font-weight:bold;" data-action="approve" data-id="${escapeHtml(record._id)}">✓ Approve Application</button>
+        <button class="danger" style="padding:8px 16px;font-weight:bold;" data-action="reject" data-id="${escapeHtml(record._id)}">✕ Reject Application</button>
+      </div>`;
+  } else if (appStatus === "approved") {
+    if (isRecordAgrCompleted) {
+      workflowStepAction = `
+        <div style="margin-top:14px;padding:10px 14px;background:#e8f5e9;border:1px solid #c8e6c9;border-radius:6px;color:#2e7d32;font-size:13px;display:flex;align-items:center;gap:8px;">
+          <span style="font-size:16px;">✅</span> <strong>Agreement Signing Completed.</strong> The Master Agent Agreement has been successfully signed.
+        </div>`;
+    } else if (!isAllDirectorsCompleted) {
+      workflowStepAction = `
+        <div style="margin-top:14px;padding:8px 12px;background:#fff3cd;border:1px solid #ffeeba;border-radius:4px;color:#856404;font-size:13px;">
+          ⏳ <strong>Step 3: Director KYC in progress.</strong> Please send and complete Director KYC in the table below before sending Agreement.
+        </div>`;
+    } else if (agrStatus === "not_started") {
+      workflowStepAction = `
+        <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <button style="background:#28a745;color:#fff;padding:8px 16px;font-weight:bold;" data-action="agreement" data-id="${escapeHtml(record._id)}">Send Agreement</button>
+        </div>`;
+    }
+  }
 
   const agreementSignersHtml = record.agreement && record.agreement.signers && record.agreement.signers.length
-    ? `<div style="margin-top:10px;"><strong style="font-size:12px;">Signers:</strong><ul style="margin:4px 0;padding-left:18px;font-size:12px;">${record.agreement.signers.map(sig => `<li>${escapeHtml(sig.name)} (${escapeHtml(sig.email)}): ${statusBadge(sig.status)} ${sig.emailError ? `<span style="color:#dc3545;font-size:11px;">⚠️ Email Failed: ${escapeHtml(sig.emailError)}</span>` : ""}</li>`).join("")}</ul></div>`
+    ? ``
     : "";
 
   const agreementHtml = record.agreement ? `
     <div class="detail-item"><span class="detail-label">Agreement Document</span><span class="detail-value">${statusBadge(record.agreement.status)} <code>${display(record.agreement.documentId || record.agreement.providerRequestId)}</code></span></div>
-    ${record.agreement.signingUrl ? `<div class="detail-item"><span class="detail-label">Signing Gateway</span><span class="detail-value"><a href="${escapeHtml(record.agreement.signingUrl)}" target="_blank" style="color:#0066cc;font-weight:bold;">Open Sign Gateway ↗</a></span></div>` : ""}
     ${record.agreement.emailError ? `<div class="detail-item" style="grid-column:span 2;color:#dc3545;"><span class="detail-label">Agreement Email Error</span><span class="detail-value">⚠️ ${escapeHtml(record.agreement.emailError)}</span></div>` : ""}
     ${agreementSignersHtml}
   ` : "";
 
-  const workflowHtml = `<section class="detail-section"><h3>WORKFLOW &amp; DECOUPLED STATUS</h3>${emailWarningHtml}${workflowStepper}<div class="detail-grid"><div class="detail-item"><span class="detail-label">Application Status</span><span class="detail-value">${statusBadge(appStatus)}</span></div><div class="detail-item"><span class="detail-label">Director KYC Status</span><span class="detail-value">${statusBadge(kycStatus)}</span></div><div class="detail-item"><span class="detail-label">Agreement Status</span><span class="detail-value">${statusBadge(agrStatus)}</span></div><div class="detail-item"><span class="detail-label">Customer Identifier</span><span class="detail-value">${display(customerIdentifier(record))}</span></div><div class="detail-item"><span class="detail-label">KYC / Request ID</span><span class="detail-value">${display(requestIdentifier(record))}</span></div><div class="detail-item"><span class="detail-label">Reference ID</span><span class="detail-value">${display(referenceIdentifier(record))}</span></div><div class="detail-item"><span class="detail-label">Rejection Reason</span><span class="detail-value">${display(record.rejectionReason)}</span></div>${agreementHtml}</div>${agreementAction}</section>`;
+  const workflowHtml = `<section class="detail-section"><h3>WORKFLOW &amp; DECOUPLED STATUS</h3>${emailWarningHtml}${workflowStepper}<div class="detail-grid"><div class="detail-item"><span class="detail-label">Application Status</span><span class="detail-value">${statusBadge(appStatus)}</span></div><div class="detail-item"><span class="detail-label">Director KYC Status</span><span class="detail-value">${statusBadge(kycStatus)}</span></div><div class="detail-item"><span class="detail-label">Agreement Status</span><span class="detail-value">${statusBadge(agrStatus)}</span></div><div class="detail-item"><span class="detail-label">Customer Identifier</span><span class="detail-value">${display(customerIdentifier(record))}</span></div><div class="detail-item"><span class="detail-label">Reference ID</span><span class="detail-value">${display(referenceIdentifier(record))}</span></div><div class="detail-item"><span class="detail-label">Rejection Reason</span><span class="detail-value">${display(record.rejectionReason)}</span></div>${agreementHtml}</div>${workflowStepAction}</section>`;
 
   const uploadedDocs = record.uploadedDocuments || {};
   const uploadedDocsHtml = `
@@ -258,39 +398,55 @@ function renderDetail(record) {
           ` : `<span style="color: #dc3545; font-size: 13px; font-weight: bold;">Not Uploaded Yet</span>`}
         </div>
       </div>
-      <div style="margin-top: 15px; display: flex; gap: 10px; align-items: center;">
-        ${appStatus === 'pending' ? `
-          <button type="button" style="background:#28a745; color:#fff; padding:8px 18px; font-weight:bold; font-size:14px; border:none; border-radius:5px; cursor:pointer;" data-action="approve" data-id="${escapeHtml(record._id)}">
-            ✓ Verify & Approve KYC
-          </button>
-          <button type="button" class="danger" style="padding:8px 18px; font-weight:bold; font-size:14px; border-radius:5px; cursor:pointer;" data-action="reject" data-id="${escapeHtml(record._id)}">
-            ✗ Reject KYC
-          </button>
-        ` : `
-          <span style="font-size:13px; font-weight:bold;">Verification Status: ${statusBadge(appStatus)}</span>
-        `}
-      </div>
+    
     </section>
   `;
 
-  const digioMatchHtml = `
-    <section class="detail-section" style="border: 2px solid #28a745; background: #f6fdf8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid #28a745;">
-        <h3 style="margin: 0; color: #155724; border: none; padding: 0; display: flex; align-items: center; gap: 6px;">
-          <span>🔍</span> DIGIO API DATA MATCHING &amp; VERIFICATION
-        </h3>
-        <button type="button" style="background:#155724; color:#fff; padding:6px 14px; font-size:12px; border-radius:4px; font-weight:bold; cursor:pointer; border:none;" data-action="match-digio" data-id="${escapeHtml(record._id)}">
-          🔄 Fetch &amp; Match DigiO API Data
-        </button>
-      </div>
-      <div id="digioMatchBox_${escapeHtml(record._id)}" style="font-size: 13px; color: #333;">
-        <p style="margin:0; font-style:italic; color:#666;">Click "Fetch &amp; Match DigiO API Data" above to compare submitted form data with official DigiO API records.</p>
-      </div>
-    </section>
-  `;
+  // const digioMatchHtml = `
+  //   <section class="detail-section" style="border: 2px solid #28a745; background: #f6fdf8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+  //     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid #28a745;">
+  //       <h3 style="margin: 0; color: #155724; border: none; padding: 0; display: flex; align-items: center; gap: 6px;">
+  //         <span>🔍</span> DIGIO API DATA MATCHING &amp; VERIFICATION
+  //       </h3>
+  //       <button type="button" style="background:#155724; color:#fff; padding:6px 14px; font-size:12px; border-radius:4px; font-weight:bold; cursor:pointer; border:none;" data-action="match-digio" data-id="${escapeHtml(record._id)}">
+  //         🔄 Fetch &amp; Match DigiO API Data
+  //       </button>
+  //     </div>
+  //     <div id="digioMatchBox_${escapeHtml(record._id)}" style="font-size: 13px; color: #333;">
+  //       <p style="margin:0; font-style:italic; color:#666;">Click "Fetch &amp; Match DigiO API Data" above to compare submitted form data with official DigiO API records.</p>
+  //     </div>
+  //   </section>
+  // `;
+
+  let rejectionBannerHtml = "";
+  // if (appStatus === "rejected") {
+  //   const editUrl = `/index.html?kycId=${encodeURIComponent(record._id)}&mode=edit`;
+  //   rejectionBannerHtml = `
+  //     <section class="detail-section" style="border: 2px solid #dc3545; background: #fff5f5; padding: 16px 20px; border-radius: 8px; margin-bottom: 20px;">
+  //       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+  //         <div>
+  //           <h3 style="margin: 0 0 6px 0; color: #dc3545; border: none; padding: 0; display: flex; align-items: center; gap: 8px;">
+  //             <span>⚠️</span> APPLICATION REJECTED BY COMPLIANCE
+  //           </h3>
+  //           <p style="margin: 0; font-size: 14px; color: #333;">
+  //             <strong>Rejection Reason:</strong> "${escapeHtml(record.rejectionReason || "Requirements not met.")}"
+  //           </p>
+  //         </div>
+  //         <div style="display: flex; gap: 10px; align-items: center;">
+  //           <a href="${editUrl}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; background: #e0a800; color: #000; font-weight: bold; padding: 8px 16px; border-radius: 5px; text-decoration: none; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+  //             ✏️ Open Pre-Filled Edit Form
+  //           </a>
+  //           <button type="button" class="secondary" style="padding: 8px 14px; font-size: 13px;" onclick="navigator.clipboard.writeText(window.location.origin + '${editUrl}').then(() => showToast('Edit form link copied to clipboard!'));">
+  //             📋 Copy Link
+  //           </button>
+  //         </div>
+  //       </div>
+  //     </section>
+  //   `;
+  // }
 
   detailTitle.textContent = `${record.entityName || "KYC Details"}`;
-  detailContent.innerHTML = workflowHtml + digioMatchHtml + uploadedDocsHtml + directorsHtml + Object.keys(fields).slice(0, 3).map((title) => sectionHtml(title, record)).join("") + documentHtml + ownersHtml + Object.keys(fields).slice(3).map((title) => sectionHtml(title, record)).join("");
+  detailContent.innerHTML = rejectionBannerHtml + workflowHtml + uploadedDocsHtml + directorsHtml + Object.keys(fields).slice(0, 3).map((title) => sectionHtml(title, record)).join("") + documentHtml + ownersHtml + Object.keys(fields).slice(3).map((title) => sectionHtml(title, record)).join("");
   detailDialog.showModal();
 }
 async function viewRecord(id) {
@@ -305,11 +461,23 @@ async function viewRecord(id) {
   }
 }
 async function updateStatus(id, action, body = {}, directorId = "") {
-  const button = document.querySelector(`button[data-action="${action}"][data-id="${CSS.escape(id)}"]`);
-  if (button) { button.disabled = true; button.textContent = "Working..."; }
+  let button;
+  if (directorId) {
+    button = document.querySelector(`button[data-action="${action}"][data-id="${CSS.escape(id)}"][data-director-id="${CSS.escape(directorId)}"]`);
+  }
+  if (!button) {
+    button = document.querySelector(`button[data-action="${action}"][data-id="${CSS.escape(id)}"]`);
+  }
+  if (button) {
+    button.disabled = true;
+    button.textContent =
+      action === "send-director-agreement" ? "Sending..." :
+      action === "send-director-kyc" ? "Sending..." : "Working...";
+  }
   try {
     const method = action === "delete-director" ? "DELETE" : "POST";
     const endpoint =
+      action === "send-director-agreement" ? `/api/admin/kyc/${encodeURIComponent(id)}/directors/${encodeURIComponent(directorId)}/send-agreement` :
       action === "send-director-kyc" ? `/api/admin/kyc/${encodeURIComponent(id)}/directors/${encodeURIComponent(directorId)}/send-kyc` :
       action === "delete-director" ? `/api/admin/kyc/${encodeURIComponent(id)}/directors/${encodeURIComponent(directorId)}` :
       action === "sync-director" ? `/api/admin/kyc/${encodeURIComponent(id)}/directors/${encodeURIComponent(directorId)}/sync` :
@@ -330,6 +498,7 @@ async function updateStatus(id, action, body = {}, directorId = "") {
     if (!response.ok || !result.success) throw new Error(result.message || "Unable to update status");
 
     const msg =
+      action === "send-director-agreement" ? "Agreement sent to Director for digital signing." :
       action === "send-director-kyc" ? "DigiO KYC link requested & emailed to Director." :
       action === "delete-director" ? "Director removed." :
       action === "sync-director" ? "Director KYC synced with DigiO." :
@@ -342,7 +511,7 @@ async function updateStatus(id, action, body = {}, directorId = "") {
       `KYC ${action === "approve" ? "approved" : "rejected"} successfully.`;
 
     showToast(msg);
-    if (action === "agreement" && result.data && result.data.signingUrl) {
+    if ((action === "agreement" || action === "send-director-agreement") && result.data && result.data.signingUrl) {
       const signerName = (result.data.signers && result.data.signers[0] && result.data.signers[0].name) || "Director";
       showDigioLinkModal(`${signerName} (E-Sign Agreement)`, `Doc ID: ${result.data.documentId || "N/A"}`, result.data.signingUrl, result.data.signingUrl);
     }
@@ -354,7 +523,12 @@ async function updateStatus(id, action, body = {}, directorId = "") {
     showToast(error.message, "error");
     if (button) {
       button.disabled = false;
-      button.textContent = action === "send-director-kyc" ? "Send KYC" : action === "approve" ? "Approve" : action === "reject" ? "Reject" : action === "agreement" ? "Send Agreement" : "Sync";
+      button.textContent =
+        action === "send-director-agreement" ? "Send Agreement" :
+        action === "send-director-kyc" ? "Send KYC" :
+        action === "approve" ? "Approve" :
+        action === "reject" ? "Reject" :
+        action === "agreement" ? "Send Agreement" : "Sync";
     }
   }
 }
@@ -460,41 +634,302 @@ async function fetchAndMatchDigioData(id) {
   }
 }
 
+async function handleSendAgreementClick(id) {
+  let record = currentRecords.find((r) => String(r._id) === String(id));
+  if (!record || !record.directors) {
+    try {
+      const res = await fetch(`/api/admin/kyc/${encodeURIComponent(id)}`);
+      const json = await res.json();
+      if (json.success && json.data) record = json.data;
+    } catch (e) {
+      console.warn("Could not fetch record for agreement selection", e);
+    }
+  }
+
+  if (!record) {
+    showToast("Could not find KYC record.", "error");
+    return;
+  }
+
+  const agrStatus = record.agreementStatus || record.agreement?.status;
+  if (agrStatus === "signed" || record.status === "completed" || record.status === "agreement_signed") {
+    showToast("Agreement is already signed and completed.", "info");
+    return;
+  }
+
+  const directors = record.directors || [];
+  if (directors.length === 0) {
+    const confirmed = await showConfirmDialog({
+      title: "Send Digital Agreement?",
+      text: "Send Master Agent Agreement for digital signing?",
+      icon: "question",
+      confirmButtonText: "Confirm",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#28a745",
+    });
+    if (confirmed) updateStatus(id, "agreement");
+    return;
+  }
+
+  if (directors.length === 1) {
+    const d = directors[0];
+    const isCompleted = d.status === "completed";
+    if (!isCompleted) {
+      if (window.Swal) {
+        Swal.fire({
+          icon: "warning",
+          title: "Director KYC Pending",
+          text: `Director ${d.name} must complete KYC verification before sending the agreement.`,
+          confirmButtonColor: "#1f3b57",
+        });
+      } else {
+        showToast(`Director ${d.name} must complete KYC first.`, "error");
+      }
+      return;
+    }
+
+    const confirmed = await showConfirmDialog({
+      title: "Send Digital Agreement?",
+      text: `Send Master Agent Agreement to Director ${d.name} (${d.email}) for digital signing?`,
+      icon: "question",
+      confirmButtonText: "Send Agreement",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#28a745",
+    });
+    if (confirmed) {
+      showToast(`Sending Agreement to ${d.name}...`, "info");
+      updateStatus(id, "agreement", { directorId: d._id }, d._id);
+    }
+    return;
+  }
+
+  // If there is MORE THAN 1 DIRECTOR (1 thi vadhu dairector hoy):
+  const completedDirectors = directors.filter((d) => d.status === "completed");
+  if (completedDirectors.length === 0) {
+    if (window.Swal) {
+      Swal.fire({
+        icon: "warning",
+        title: "Director KYC Incomplete",
+        text: "None of the directors have completed KYC verification yet. At least one director must complete KYC before receiving the agreement.",
+        confirmButtonColor: "#1f3b57",
+      });
+    } else {
+      showToast("At least one director must complete KYC first.", "error");
+    }
+    return;
+  }
+
+  const directorOptionsHtml = directors.map((d, index) => {
+    const isKycDone = d.status === "completed";
+    const isFirstCompleted = isKycDone && String(completedDirectors[0]?._id) === String(d._id);
+    const isChecked = isFirstCompleted ? "checked" : "";
+    const isDisabled = !isKycDone ? "disabled" : "";
+
+    return `
+      <label class="director-select-card" style="display:flex !important; flex-direction:row !important; align-items:flex-start !important; width:100% !important; box-sizing:border-box !important; padding:12px !important; border:2px solid ${isFirstCompleted ? '#28a745' : '#e0e0e0'} !important; border-radius:8px !important; cursor:${isKycDone ? 'pointer' : 'not-allowed'} !important; background:${isFirstCompleted ? '#f0fff4' : isKycDone ? '#ffffff' : '#f8f9fa'} !important; margin-bottom:10px !important; transition:all 0.2s; ${!isKycDone ? 'opacity:0.6;' : ''}">
+        <input type="radio" name="swalDirectorSelect" value="${escapeHtml(d._id)}" ${isChecked} ${isDisabled} style="width:18px !important; min-width:18px !important; max-width:18px !important; height:18px !important; min-height:18px !important; flex:0 0 18px !important; margin:3px 12px 0 0 !important; cursor:${isKycDone ? 'pointer' : 'not-allowed'} !important;" />
+        <div style="flex:1 1 auto !important; min-width:0 !important; text-align:left !important;">
+          <div style="font-weight:700 !important; color:#1f3b57 !important; font-size:14.5px !important; display:flex !important; justify-content:space-between !important; align-items:center !important; flex-wrap:wrap !important; gap:6px !important;">
+            <span>${escapeHtml(d.name || "Director")}</span>
+            <span style="font-size:11px !important; padding:3px 8px !important; border-radius:4px !important; font-weight:600 !important; background:${isKycDone ? '#e8f5e9' : '#fff3cd'} !important; color:${isKycDone ? '#2e7d32' : '#856404'} !important;">
+              ${isKycDone ? "✓ KYC Completed" : "⏳ KYC " + (d.status || "Pending")}
+            </span>
+          </div>
+          <div style="font-size:13px !important; color:#444 !important; margin-top:4px !important; word-break:break-all !important;">
+            📧 <strong>Email:</strong> ${escapeHtml(d.email || "N/A")}
+          </div>
+          ${d.phone ? `<div style="font-size:12.5px !important; color:#666 !important; margin-top:2px !important;">📱 <strong>Phone:</strong> ${escapeHtml(d.phone)}</div>` : ""}
+        </div>
+      </label>
+    `;
+  }).join("");
+
+  if (window.Swal) {
+    const { value: selectedId, isConfirmed } = await Swal.fire({
+      title: "Select Director for Agreement",
+      width: 520,
+      html: `
+        <div style="font-size:13.5px; color:#444; text-align:left; margin-bottom:14px;">
+          Select which director should receive and sign the <strong>Master Agent Agreement</strong>:
+        </div>
+        <div id="swalDirectorList" style="max-height:280px; overflow-y:auto; padding-right:4px;">
+          ${directorOptionsHtml}
+        </div>
+      `,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#28a745",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Send Agreement",
+      cancelButtonText: "Cancel",
+      preConfirm: () => {
+        const checked = document.querySelector('input[name="swalDirectorSelect"]:checked');
+        if (!checked) {
+          Swal.showValidationMessage("Please select a director to send the agreement to.");
+          return false;
+        }
+        return checked.value;
+      },
+      didOpen: () => {
+        const radios = document.querySelectorAll('input[name="swalDirectorSelect"]');
+        radios.forEach((r) => {
+          r.addEventListener("change", () => {
+            radios.forEach((other) => {
+              const card = other.closest(".director-select-card");
+              if (card) {
+                card.style.borderColor = other.checked ? "#28a745" : "#e0e0e0";
+                card.style.background = other.checked ? "#f0fff4" : (other.disabled ? "#f8f9fa" : "#ffffff");
+              }
+            });
+          });
+        });
+      }
+    });
+
+    if (isConfirmed && selectedId) {
+      const selectedDirector = directors.find((d) => String(d._id) === String(selectedId));
+      showToast(`Sending Agreement to ${selectedDirector?.name || "selected director"}...`, "info");
+      updateStatus(id, "agreement", { directorId: selectedId }, selectedId);
+    }
+  } else {
+    const selected = completedDirectors[0];
+    updateStatus(id, "agreement", { directorId: selected._id }, selected._id);
+  }
+}
+
 recordsBody.addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-action]");
-  if (!button) return;
+  if (!button || button.disabled) return;
   const id = button.dataset.id;
   if (button.dataset.action === "view") viewRecord(id);
   if (button.dataset.action === "open-digio-link-modal") openDigioLinkModalForRecord(id);
   if (button.dataset.action === "download") downloadPdf(id);
   if (button.dataset.action === "download-agreement") downloadAgreement(id);
-  if (button.dataset.action === "agreement" && window.confirm("Send Master Agent Agreement for digital signing?")) updateStatus(id, "agreement");
+  if (button.dataset.action === "agreement") {
+    handleSendAgreementClick(id);
+  }
   if (button.dataset.action === "sync-agreement") updateStatus(id, "sync-agreement");
-  if (button.dataset.action === "request" && window.confirm("Create a DigiO KYC request for this application?")) updateStatus(id, "request");
-  if (button.dataset.action === "approve" && window.confirm("Approve this KYC request? Director KYC will be initiated.")) updateStatus(id, "approve");
+  if (button.dataset.action === "request") {
+    const confirmed = await showConfirmDialog({
+      title: "Create DigiO KYC Request?",
+      text: "Create a DigiO KYC request for this application?",
+      icon: "question",
+      confirmButtonText: "Confirm",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#0056b3",
+    });
+    if (confirmed) updateStatus(id, "request");
+  }
+  if (button.dataset.action === "approve") {
+    const confirmed = await showConfirmDialog({
+      title: "Approve KYC Request?",
+      text: "Approve this KYC request? Director KYC will be initiated.",
+      icon: "question",
+      iconColor: "#28a745",
+      confirmButtonText: "Confirm",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#28a745",
+    });
+    if (confirmed) updateStatus(id, "approve");
+  }
   if (button.dataset.action === "reject") openReject(id);
 });
 
-detailContent.addEventListener("click", (event) => {
+detailContent.addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-action]");
-  if (!button) return;
+  if (!button || button.disabled) return;
   const id = button.dataset.id;
   if (button.dataset.action === "match-digio") fetchAndMatchDigioData(id);
-  if (button.dataset.action === "send-director-kyc" && window.confirm("Send DigiO KYC request to this director?")) updateStatus(id, "send-director-kyc", {}, button.dataset.directorId);
-  if (button.dataset.action === "delete-director" && window.confirm("Remove this director?")) updateStatus(id, "delete-director", {}, button.dataset.directorId);
+  if (button.dataset.action === "send-director-kyc") {
+    showToast("Sending DigiO KYC link to Director...", "info");
+    updateStatus(id, "send-director-kyc", {}, button.dataset.directorId);
+  }
+  if (button.dataset.action === "send-director-agreement") {
+    const confirmed = await showConfirmDialog({
+      title: "Send Digital Agreement?",
+      text: "Send Master Agent Agreement to this director for digital signing?",
+      icon: "question",
+      confirmButtonText: "Confirm",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#28a745",
+    });
+    if (confirmed) {
+      showToast("Sending Agreement to Director...", "info");
+      updateStatus(id, "send-director-agreement", {}, button.dataset.directorId);
+    }
+  }
+  if (button.dataset.action === "delete-director") {
+    const confirmed = await showConfirmDialog({
+      title: "Remove Director?",
+      text: "Are you sure you want to remove this director?",
+      icon: "warning",
+      iconColor: "#dc3545",
+      confirmButtonText: "Confirm",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#dc3545",
+    });
+    if (confirmed) updateStatus(id, "delete-director", {}, button.dataset.directorId);
+  }
   if (button.dataset.action === "sync-director") updateStatus(id, "sync-director", {}, button.dataset.directorId);
-  if (button.dataset.action === "approve-director" && window.confirm("Mark this director's KYC as approved?")) updateStatus(id, "approve-director", {}, button.dataset.directorId);
-  if (button.dataset.action === "agreement" && window.confirm("Send Master Agent Agreement for digital signing?")) updateStatus(id, "agreement");
+  if (button.dataset.action === "approve-director") {
+    const confirmed = await showConfirmDialog({
+      title: "Approve Director KYC?",
+      text: "Mark this director's KYC as approved?",
+      icon: "question",
+      iconColor: "#28a745",
+      confirmButtonText: "Confirm",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#28a745",
+    });
+    if (confirmed) updateStatus(id, "approve-director", {}, button.dataset.directorId);
+  }
+  if (button.dataset.action === "agreement") {
+    handleSendAgreementClick(id);
+  }
   if (button.dataset.action === "sync-agreement") updateStatus(id, "sync-agreement");
-  if (button.dataset.action === "approve-agreement" && window.confirm("Mark the agreement as signed & complete onboarding?")) updateStatus(id, "approve-agreement");
+  if (button.dataset.action === "approve") {
+    const confirmed = await showConfirmDialog({
+      title: "Approve Application?",
+      text: "Approve this application form details?",
+      icon: "question",
+      iconColor: "#28a745",
+      confirmButtonText: "Confirm",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#28a745",
+    });
+    if (confirmed) updateStatus(id, "approve");
+  }
+  if (button.dataset.action === "reject") openReject(id);
   if (button.dataset.action === "download-agreement") downloadAgreement(id);
 });
 
-rejectForm.addEventListener("submit", (event) => {
+rejectForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const reason = rejectionReason.value.trim();
-  if (!reason) { showToast("Rejection reason is required.", "error"); return; }
-  if (!window.confirm("Confirm rejection of this KYC request?")) return;
+  if (!reason) {
+    showToast("Rejection reason is required.", "error");
+    if (window.Swal) {
+      Swal.fire({
+        icon: "error",
+        iconColor: "#dc3545",
+        title: "Rejection Reason Required",
+        text: "Please provide a rejection reason before rejecting the KYC request.",
+        confirmButtonColor: "#dc3545",
+        confirmButtonText: "OK",
+      });
+    }
+    return;
+  }
+  const confirmed = await showConfirmDialog({
+    title: "Confirm KYC Rejection?",
+    text: "Are you sure you want to reject this KYC request?",
+    icon: "warning",
+    iconColor: "#dc3545",
+    confirmButtonText: "Confirm",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#dc3545",
+  });
+  if (!confirmed) return;
   rejectDialog.close();
   updateStatus(pendingRejectId, "reject", { reason });
 });
@@ -535,6 +970,7 @@ closeDialog.addEventListener("click", () => detailDialog.close());
 closeRejectDialog.addEventListener("click", () => rejectDialog.close());
 cancelReject.addEventListener("click", () => rejectDialog.close());
 detailDialog.addEventListener("click", (event) => { if (event.target === detailDialog) detailDialog.close(); });
+rejectDialog.addEventListener("click", (event) => { if (event.target === rejectDialog) rejectDialog.close(); });
 logoutButton.addEventListener("click", async () => {
   await fetch("/api/admin/auth/logout", { method: "POST", credentials: "same-origin" });
   window.location.replace("/adminlogin.html");
